@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Local database credentials. Copy .env.example to .env.
+.env
+.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
