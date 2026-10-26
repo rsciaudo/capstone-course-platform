@@ -1,7 +1,7 @@
-import { Card, Text } from '@mantine/core'
+import { Badge, Card, Group, Text } from '@mantine/core'
 import { Link } from 'react-router-dom'
 
-export default function UserCard({ groupNumber, userNumber }) {
+export default function UserCard({ groupNumber, userNumber, name, role }) {
   return (
     <Card
       component={Link}
@@ -9,7 +9,10 @@ export default function UserCard({ groupNumber, userNumber }) {
       withBorder
       padding="md"
     >
-      <Text>user {userNumber}</Text>
+      <Group justify="space-between">
+        <Text>{name}</Text>
+        <Badge>{role}</Badge>
+      </Group>
     </Card>
   )
 }

@@ -13,14 +13,19 @@ export function contentLabel(content, item) {
 export function CoursesProvider({ children }) {
   const [courses, setCourses] = useState([])
 
-  function createCourse() {
+  function createCourse({ name, groupNumber }) {
     setCourses((current) => [
       ...current,
-      { number: current.length + 1, modules: [] },
+      {
+        number: current.length + 1,
+        name,
+        groupNumber: Number(groupNumber),
+        modules: [],
+      },
     ])
   }
 
-  function addModule(courseNumber) {
+  function addModule(courseNumber, { name }) {
     setCourses((current) =>
       current.map((course) => {
         if (course.number !== Number(courseNumber)) {
@@ -31,7 +36,7 @@ export function CoursesProvider({ children }) {
           ...course,
           modules: [
             ...course.modules,
-            { number: course.modules.length + 1, content: [] },
+            { number: course.modules.length + 1, name, content: [] },
           ],
         }
       }),
