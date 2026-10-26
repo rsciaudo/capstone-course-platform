@@ -3,7 +3,7 @@ import Layout from './components/Layout.jsx'
 import { CoursesProvider } from './courses/CoursesContext.jsx'
 import { GroupsProvider } from './groups/GroupsContext.jsx'
 import ContentDetailPage from './pages/ContentDetailPage.jsx'
-import CoursePage from './pages/CoursePage.jsx'
+import CourseDetailPage from './pages/CourseDetailPage.jsx'
 import CoursesPage from './pages/CoursesPage.jsx'
 import GroupDetailPage from './pages/GroupDetailPage.jsx'
 import GroupsPage from './pages/GroupsPage.jsx'
@@ -20,7 +20,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<HomePage />} />
               <Route path="courses" element={<CoursesPage />} />
-              <Route path="courses/:number" element={<CoursePage />} />
+              <Route path="courses/:number" element={<CourseDetailPage />} />
               <Route
                 path="courses/:number/modules/:moduleNumber"
                 element={<ModulePage />}

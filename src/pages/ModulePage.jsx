@@ -16,7 +16,7 @@ export default function ModulePage() {
 
   return (
     <Stack>
-      <Title order={1}>module {moduleNumber}</Title>
+      <Title order={1}>{module?.name}</Title>
       <Menu>
         <Menu.Target>
           <Button w="fit-content">add course content</Button>

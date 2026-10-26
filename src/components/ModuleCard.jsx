@@ -1,7 +1,7 @@
 import { Card, Text } from '@mantine/core'
 import { Link } from 'react-router-dom'
 
-export default function ModuleCard({ courseNumber, moduleNumber }) {
+export default function ModuleCard({ courseNumber, moduleNumber, name }) {
   return (
     <Card
       component={Link}
@@ -9,7 +9,7 @@ export default function ModuleCard({ courseNumber, moduleNumber }) {
       withBorder
       padding="md"
     >
-      <Text>module {moduleNumber}</Text>
+      <Text>{name}</Text>
     </Card>
   )
 }
