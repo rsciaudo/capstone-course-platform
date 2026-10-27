@@ -1,26 +1,30 @@
-import os
-from urllib.parse import quote_plus
+from contextlib import asynccontextmanager
 
-import psycopg
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-app = FastAPI()
+from app.database import engine
+from app.models import Base
 
 
-def database_url() -> str:
-    user = quote_plus(os.environ["POSTGRES_USER"])
-    password = quote_plus(os.environ["POSTGRES_PASSWORD"])
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    database = quote_plus(os.environ["POSTGRES_DB"])
-    return f"postgresql://{user}:{password}@{host}:5432/{database}"
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/api/health")
-def health():
+async def health():
     try:
-        with psycopg.connect(database_url(), connect_timeout=3) as conn:
-            conn.execute("select 1")
-    except psycopg.Error:
+        async with engine.connect() as conn:
+            await conn.execute(text("select 1"))
+    except SQLAlchemyError:
         return JSONResponse(status_code=503, content={"status": "unavailable"})
     return {"status": "ok"}

@@ -9,11 +9,7 @@ Copy `.env.example` to `.env`, then start the database, backend, and frontend:
 docker compose up --build
 ```
 
-Apply the schema once the database is healthy:
-
-```bash
-bash db/apply.sh
-```
+The backend creates the database tables when it starts.
 
 Open the admin UI at http://localhost:5173. Check the backend at http://localhost:8000/api/health.
 
