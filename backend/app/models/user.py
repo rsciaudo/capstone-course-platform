@@ -12,7 +12,10 @@ class User(Base):
     name: Mapped[str] = mapped_column(Text)
     role: Mapped[str] = mapped_column(Text)
 
-    group: Mapped["Group | None"] = relationship(back_populates="users")
+    group: Mapped["Group | None"] = relationship(
+        back_populates="users",
+        foreign_keys=[group_id],
+    )
     enrollments: Mapped[list["CourseEnrollment"]] = relationship(back_populates="user")
     edit_grants: Mapped[list["CourseEditGrant"]] = relationship(back_populates="user")
 
