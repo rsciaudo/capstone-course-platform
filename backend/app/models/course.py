@@ -10,6 +10,7 @@ class Course(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"), index=True)
     name: Mapped[str] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
 
     group: Mapped["Group"] = relationship(back_populates="courses")
     modules: Mapped[list["Module"]] = relationship(back_populates="course")
