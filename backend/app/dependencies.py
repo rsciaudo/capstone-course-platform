@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,14 +7,19 @@ from app.models import Course, CourseEditGrant, CourseEnrollment, Group, User
 
 
 async def get_current_user(
-    user_id: int,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    user_id = request.session.get("user_id")
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+        )
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
     return user
 

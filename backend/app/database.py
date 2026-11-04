@@ -21,34 +21,3 @@ async def get_db():
     async with SessionLocal() as session:
         yield session
 
-
-async def ensure_schema(conn) -> None:
-    tables = (
-        "groups",
-        "users",
-        "courses",
-        "modules",
-        "content_items",
-        "course_enrollments",
-        "course_edit_grants",
-    )
-    for table in tables:
-        await conn.execute(
-            text(
-                f"ALTER TABLE {table} "
-                "ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()"
-            )
-        )
-        await conn.execute(
-            text(
-                f"ALTER TABLE {table} "
-                "ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()"
-            )
-        )
-    for table in ("groups", "courses"):
-        await conn.execute(
-            text(
-                f"ALTER TABLE {table} "
-                "ADD COLUMN IF NOT EXISTS created_by integer REFERENCES users(id)"
-            )
-        )
