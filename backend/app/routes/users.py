@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import User
+from app.passwords import hash_password
 from app.schemas.user import UserCreate, UserRead, UserUpdate, check_group_membership
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -35,7 +36,13 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    user = User(name=user_data.name, role=user_data.role, group_id=user_data.group_id)
+    user = User(
+        name=user_data.name,
+        username=user_data.username,
+        password_hash=hash_password(user_data.password),
+        role=user_data.role,
+        group_id=user_data.group_id,
+    )
     db.add(user)
     try:
         await db.commit()

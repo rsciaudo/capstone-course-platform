@@ -10,6 +10,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int | None] = mapped_column(ForeignKey("groups.id"), index=True)
     name: Mapped[str] = mapped_column(Text)
+    username: Mapped[str] = mapped_column(Text, unique=True)
+    password_hash: Mapped[str] = mapped_column(Text)
     role: Mapped[str] = mapped_column(Text)
 
     group: Mapped["Group | None"] = relationship(

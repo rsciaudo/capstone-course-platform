@@ -17,8 +17,22 @@ def check_group_membership(role: str, group_id: int | None) -> None:
         raise ValueError("super-user and admin must not have a group_id")
 
 
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def strip_username(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("username cannot be empty")
+        return strip_name(value)
+
+
 class UserCreate(BaseModel):
     name: str = Field(min_length=1)
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
     role: Role
     group_id: int | None = None
 
@@ -27,6 +41,13 @@ class UserCreate(BaseModel):
     def strip_name(cls, value: object) -> object:
         if value is None:
             raise ValueError("name cannot be empty")
+        return strip_name(value)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def strip_username(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("username cannot be empty")
         return strip_name(value)
 
     @model_validator(mode="after")
@@ -53,6 +74,7 @@ class UserRead(BaseModel):
 
     id: int
     name: str
+    username: str
     role: str
     group_id: int | None
     created_at: datetime
