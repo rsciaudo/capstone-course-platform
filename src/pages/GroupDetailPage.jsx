@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Stack, TextInput, Title } from '@mantine/core'
+import { Button, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -11,41 +11,43 @@ const roles = [
 ]
 
 export default function GroupDetailPage() {
-  const { number } = useParams()
-  const { groups, addUser } = useGroups()
+  const { id } = useParams()
+  const { groups, loading, error, addUser } = useGroups()
   const [opened, { open, close }] = useDisclosure(false)
   const [name, setName] = useState('')
   const [role, setRole] = useState(null)
-  const [groupNumber, setGroupNumber] = useState(String(number))
-  const group = groups.find((item) => item.number === Number(number))
+  const [groupId, setGroupId] = useState(String(id))
+  const group = groups.find((item) => item.id === Number(id))
   const users = group?.users ?? []
   const groupOptions = groups.map((item) => ({
-    value: String(item.number),
+    value: String(item.id),
     label: item.name,
   }))
 
   function openModal() {
     setName('')
     setRole(null)
-    setGroupNumber(String(number))
+    setGroupId(String(id))
     open()
   }
 
   function submit() {
-    addUser(groupNumber, { name: name.trim(), role })
+    addUser(groupId, { name: name.trim(), role })
     close()
   }
 
   return (
     <Stack>
       <Title order={1}>{group?.name}</Title>
+      {loading ? <Loader /> : null}
+      {error ? <Text c="red">{error}</Text> : null}
       <Button onClick={openModal} w="fit-content">
         add user
       </Button>
       {users.map((user) => (
         <UserCard
           key={user.number}
-          groupNumber={number}
+          groupId={id}
           userNumber={user.number}
           name={user.name}
           role={user.role}
@@ -68,13 +70,13 @@ export default function GroupDetailPage() {
           <Select
             label="group"
             data={groupOptions}
-            value={groupNumber}
-            onChange={setGroupNumber}
+            value={groupId}
+            onChange={setGroupId}
             allowDeselect={false}
           />
           <Button
             onClick={submit}
-            disabled={name.trim() === '' || !role || !groupNumber}
+            disabled={name.trim() === '' || !role || !groupId}
           >
             add user
           </Button>

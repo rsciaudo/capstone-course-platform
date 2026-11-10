@@ -1,4 +1,4 @@
-import { Button, Modal, Stack, TextInput } from '@mantine/core'
+import { Button, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useGroups } from '../groups/GroupsContext.jsx'
 
@@ -13,10 +13,19 @@ export default function CreateGroupModal({ opened, onClose }) {
 function CreateGroupForm({ onClose }) {
   const { addGroup } = useGroups()
   const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit() {
-    addGroup({ name: name.trim() })
-    onClose()
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      await addGroup({ name: name.trim() })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -26,7 +35,8 @@ function CreateGroupForm({ onClose }) {
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
       />
-      <Button onClick={submit} disabled={name.trim() === ''}>
+      {error ? <Text c="red">{error}</Text> : null}
+      <Button onClick={submit} loading={submitting} disabled={name.trim() === ''}>
         add group
       </Button>
     </Stack>

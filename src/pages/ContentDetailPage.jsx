@@ -12,12 +12,10 @@ const contentComponents = {
 }
 
 export default function ContentDetailPage() {
-  const { number, moduleNumber, contentNumber } = useParams()
+  const { id, moduleId, contentNumber } = useParams()
   const { courses } = useCourses()
-  const course = courses.find((item) => item.number === Number(number))
-  const module = course?.modules.find(
-    (item) => item.number === Number(moduleNumber),
-  )
+  const course = courses.find((item) => item.id === Number(id))
+  const module = course?.modules.find((item) => item.id === Number(moduleId))
   const content = module?.content ?? []
   const item = content.find((entry) => entry.number === Number(contentNumber))
 

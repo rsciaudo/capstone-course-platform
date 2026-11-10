@@ -1,11 +1,11 @@
 import { Card, Text } from '@mantine/core'
 import { Link } from 'react-router-dom'
 
-export default function ModuleCard({ courseNumber, moduleNumber, name }) {
+export default function ModuleCard({ courseId, moduleId, name }) {
   return (
     <Card
       component={Link}
-      to={`/courses/${courseNumber}/modules/${moduleNumber}`}
+      to={`/courses/${courseId}/modules/${moduleId}`}
       withBorder
       padding="md"
     >

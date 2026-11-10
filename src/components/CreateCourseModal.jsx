@@ -1,4 +1,4 @@
-import { Button, Modal, Select, Stack, TextInput } from '@mantine/core'
+import { Button, Modal, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useCourses } from '../courses/CoursesContext.jsx'
 import { useGroups } from '../groups/GroupsContext.jsx'
@@ -15,15 +15,24 @@ function CreateCourseForm({ onClose }) {
   const { createCourse } = useCourses()
   const { groups } = useGroups()
   const [name, setName] = useState('')
-  const [groupNumber, setGroupNumber] = useState(null)
+  const [groupId, setGroupId] = useState(null)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const groupOptions = groups.map((group) => ({
-    value: String(group.number),
+    value: String(group.id),
     label: group.name,
   }))
 
-  function submit() {
-    createCourse({ name: name.trim(), groupNumber })
-    onClose()
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      await createCourse({ name: name.trim(), groupId })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -36,11 +45,16 @@ function CreateCourseForm({ onClose }) {
       <Select
         label="group"
         data={groupOptions}
-        value={groupNumber}
-        onChange={setGroupNumber}
+        value={groupId}
+        onChange={setGroupId}
         allowDeselect={false}
       />
-      <Button onClick={submit} disabled={name.trim() === '' || !groupNumber}>
+      {error ? <Text c="red">{error}</Text> : null}
+      <Button
+        onClick={submit}
+        loading={submitting}
+        disabled={name.trim() === '' || !groupId}
+      >
         create course
       </Button>
     </Stack>

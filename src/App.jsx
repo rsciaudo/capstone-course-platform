@@ -25,19 +25,19 @@ export default function App() {
                 <Route element={<Layout />}>
                   <Route index element={<HomePage />} />
                   <Route path="courses" element={<CoursesPage />} />
-                  <Route path="courses/:number" element={<CourseDetailPage />} />
+                  <Route path="courses/:id" element={<CourseDetailPage />} />
                   <Route
-                    path="courses/:number/modules/:moduleNumber"
+                    path="courses/:id/modules/:moduleId"
                     element={<ModulePage />}
                   />
                   <Route
-                    path="courses/:number/modules/:moduleNumber/content/:contentNumber"
+                    path="courses/:id/modules/:moduleId/content/:contentNumber"
                     element={<ContentDetailPage />}
                   />
                   <Route path="groups" element={<GroupsPage />} />
-                  <Route path="groups/:number" element={<GroupDetailPage />} />
+                  <Route path="groups/:id" element={<GroupDetailPage />} />
                   <Route
-                    path="groups/:number/users/:userNumber"
+                    path="groups/:id/users/:userNumber"
                     element={<UserDetailPage />}
                   />
                 </Route>

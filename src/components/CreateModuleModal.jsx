@@ -1,31 +1,40 @@
-import { Button, Modal, Select, Stack, TextInput } from '@mantine/core'
+import { Button, Modal, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useCourses } from '../courses/CoursesContext.jsx'
 
-export default function CreateModuleModal({ opened, onClose, courseNumber }) {
+export default function CreateModuleModal({ opened, onClose, courseId }) {
   return (
     <Modal opened={opened} onClose={onClose} title="add module">
       {opened ? (
-        <CreateModuleForm onClose={onClose} courseNumber={courseNumber} />
+        <CreateModuleForm onClose={onClose} courseId={courseId} />
       ) : null}
     </Modal>
   )
 }
 
-function CreateModuleForm({ onClose, courseNumber }) {
+function CreateModuleForm({ onClose, courseId }) {
   const { courses, addModule } = useCourses()
   const [name, setName] = useState('')
   const [selectedCourse, setSelectedCourse] = useState(
-    courseNumber == null ? null : String(courseNumber),
+    courseId == null ? null : String(courseId),
   )
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const courseOptions = courses.map((course) => ({
-    value: String(course.number),
+    value: String(course.id),
     label: course.name,
   }))
 
-  function submit() {
-    addModule(selectedCourse, { name: name.trim() })
-    onClose()
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      await addModule(selectedCourse, { name: name.trim() })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -42,7 +51,12 @@ function CreateModuleForm({ onClose, courseNumber }) {
         onChange={setSelectedCourse}
         allowDeselect={false}
       />
-      <Button onClick={submit} disabled={name.trim() === '' || !selectedCourse}>
+      {error ? <Text c="red">{error}</Text> : null}
+      <Button
+        onClick={submit}
+        loading={submitting}
+        disabled={name.trim() === '' || !selectedCourse}
+      >
         add module
       </Button>
     </Stack>
