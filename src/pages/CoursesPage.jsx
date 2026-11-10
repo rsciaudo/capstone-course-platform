@@ -1,11 +1,11 @@
-import { Button, Stack, Title } from '@mantine/core'
+import { Button, Loader, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import CourseCard from '../components/CourseCard.jsx'
 import CreateCourseModal from '../components/CreateCourseModal.jsx'
 import { useCourses } from '../courses/CoursesContext.jsx'
 
 export default function CoursesPage() {
-  const { courses } = useCourses()
+  const { courses, loading, error } = useCourses()
   const [opened, { open, close }] = useDisclosure(false)
 
   return (
@@ -14,12 +14,10 @@ export default function CoursesPage() {
       <Button onClick={open} w="fit-content">
         create course
       </Button>
+      {loading ? <Loader /> : null}
+      {error ? <Text c="red">{error}</Text> : null}
       {courses.map((course) => (
-        <CourseCard
-          key={course.number}
-          number={course.number}
-          name={course.name}
-        />
+        <CourseCard key={course.id} id={course.id} name={course.name} />
       ))}
       <CreateCourseModal opened={opened} onClose={close} />
     </Stack>

@@ -1,21 +1,75 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { api } from '../api/client.js'
+import { useAuth } from '../auth/AuthContext.jsx'
 
 const GroupsContext = createContext(null)
 
-export function GroupsProvider({ children }) {
-  const [groups, setGroups] = useState([])
+function toGroup(group) {
+  return {
+    id: group.id,
+    name: group.name,
+    users: [],
+  }
+}
 
-  function addGroup({ name }) {
-    setGroups((current) => [
-      ...current,
-      { number: current.length + 1, name, users: [] },
-    ])
+export function GroupsProvider({ children }) {
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+  const [groups, setGroups] = useState([])
+  const [loadedUserId, setLoadedUserId] = useState(null)
+  const [error, setError] = useState(null)
+  const loading = userId !== null && loadedUserId !== userId
+
+  useEffect(() => {
+    if (userId === null) {
+      setGroups([])
+      setError(null)
+      setLoadedUserId(null)
+      return
+    }
+
+    let active = true
+    setError(null)
+
+    api('/api/groups')
+      .then((rows) => {
+        if (!active) {
+          return
+        }
+        setGroups(rows.map(toGroup))
+      })
+      .catch((err) => {
+        if (!active) {
+          return
+        }
+        setGroups([])
+        setError(err instanceof Error ? err.message : 'Request failed')
+      })
+      .finally(() => {
+        if (active) {
+          setLoadedUserId(userId)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [userId])
+
+  async function addGroup({ name }) {
+    const created = await api('/api/groups', {
+      method: 'POST',
+      body: { name },
+    })
+    const group = toGroup(created)
+    setGroups((current) => [...current, group])
+    return group
   }
 
-  function addUser(groupNumber, { name, role }) {
+  function addUser(groupId, { name, role }) {
     setGroups((current) =>
       current.map((group) => {
-        if (group.number !== Number(groupNumber)) {
+        if (group.id !== Number(groupId)) {
           return group
         }
 
@@ -27,8 +81,8 @@ export function GroupsProvider({ children }) {
               number: group.users.length + 1,
               name,
               role,
-              courseNumbers: [],
-              editableCourseNumbers: [],
+              courseIds: [],
+              editableCourseIds: [],
             },
           ],
         }
@@ -36,12 +90,12 @@ export function GroupsProvider({ children }) {
     )
   }
 
-  function enrollUser(groupNumber, userNumber, courseNumber) {
-    const selectedCourse = Number(courseNumber)
+  function enrollUser(groupId, userNumber, courseId) {
+    const selectedCourse = Number(courseId)
 
     setGroups((current) =>
       current.map((group) => {
-        if (group.number !== Number(groupNumber)) {
+        if (group.id !== Number(groupId)) {
           return group
         }
 
@@ -56,14 +110,14 @@ export function GroupsProvider({ children }) {
               return user
             }
 
-            const courseNumbers = user.courseNumbers ?? []
-            if (courseNumbers.includes(selectedCourse)) {
+            const courseIds = user.courseIds ?? []
+            if (courseIds.includes(selectedCourse)) {
               return user
             }
 
             return {
               ...user,
-              courseNumbers: [...courseNumbers, selectedCourse],
+              courseIds: [...courseIds, selectedCourse],
             }
           }),
         }
@@ -71,12 +125,12 @@ export function GroupsProvider({ children }) {
     )
   }
 
-  function grantEditAccess(groupNumber, userNumber, courseNumber) {
-    const selectedCourse = Number(courseNumber)
+  function grantEditAccess(groupId, userNumber, courseId) {
+    const selectedCourse = Number(courseId)
 
     setGroups((current) =>
       current.map((group) => {
-        if (group.number !== Number(groupNumber)) {
+        if (group.id !== Number(groupId)) {
           return group
         }
 
@@ -91,14 +145,14 @@ export function GroupsProvider({ children }) {
               return user
             }
 
-            const editableCourseNumbers = user.editableCourseNumbers ?? []
-            if (editableCourseNumbers.includes(selectedCourse)) {
+            const editableCourseIds = user.editableCourseIds ?? []
+            if (editableCourseIds.includes(selectedCourse)) {
               return user
             }
 
             return {
               ...user,
-              editableCourseNumbers: [...editableCourseNumbers, selectedCourse],
+              editableCourseIds: [...editableCourseIds, selectedCourse],
             }
           }),
         }
@@ -108,7 +162,7 @@ export function GroupsProvider({ children }) {
 
   return (
     <GroupsContext.Provider
-      value={{ groups, addGroup, addUser, enrollUser, grantEditAccess }}
+      value={{ groups, loading, error, addGroup, addUser, enrollUser, grantEditAccess }}
     >
       {children}
     </GroupsContext.Provider>

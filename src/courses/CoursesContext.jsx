@@ -1,4 +1,6 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { api } from '../api/client.js'
+import { useAuth } from '../auth/AuthContext.jsx'
 
 const CoursesContext = createContext(null)
 
@@ -10,50 +12,119 @@ export function contentLabel(content, item) {
   return `${item.type} ${count}`
 }
 
-export function CoursesProvider({ children }) {
-  const [courses, setCourses] = useState([])
+function toModule(module) {
+  return {
+    id: module.id,
+    name: module.name,
+    position: module.position,
+    content: [],
+  }
+}
 
-  function createCourse({ name, groupNumber }) {
-    setCourses((current) => [
-      ...current,
-      {
-        number: current.length + 1,
-        name,
-        groupNumber: Number(groupNumber),
-        modules: [],
-      },
-    ])
+function toCourse(course, modules) {
+  return {
+    id: course.id,
+    name: course.name,
+    groupId: course.group_id,
+    modules: modules
+      .filter((module) => module.course_id === course.id)
+      .sort((left, right) => left.position - right.position)
+      .map(toModule),
+  }
+}
+
+export function CoursesProvider({ children }) {
+  const { user } = useAuth()
+  const userId = user?.id ?? null
+  const [courses, setCourses] = useState([])
+  const [loadedUserId, setLoadedUserId] = useState(null)
+  const [error, setError] = useState(null)
+  const loading = userId !== null && loadedUserId !== userId
+
+  useEffect(() => {
+    if (userId === null) {
+      setCourses([])
+      setError(null)
+      setLoadedUserId(null)
+      return
+    }
+
+    let active = true
+    setError(null)
+
+    Promise.all([api('/api/courses'), api('/api/modules')])
+      .then(([courseRows, moduleRows]) => {
+        if (!active) {
+          return
+        }
+        setCourses(courseRows.map((course) => toCourse(course, moduleRows)))
+      })
+      .catch((err) => {
+        if (!active) {
+          return
+        }
+        setCourses([])
+        setError(err instanceof Error ? err.message : 'Request failed')
+      })
+      .finally(() => {
+        if (active) {
+          setLoadedUserId(userId)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [userId])
+
+  async function createCourse({ name, groupId }) {
+    const created = await api('/api/courses', {
+      method: 'POST',
+      body: { name, group_id: Number(groupId) },
+    })
+    const course = toCourse(created, [])
+    setCourses((current) => [...current, course])
+    return course
   }
 
-  function addModule(courseNumber, { name }) {
+  async function addModule(courseId, { name }) {
+    const selectedCourseId = Number(courseId)
+    const course = courses.find((item) => item.id === selectedCourseId)
+    const highest = (course?.modules ?? []).reduce(
+      (max, module) => Math.max(max, module.position ?? 0),
+      0,
+    )
+    const created = await api('/api/modules', {
+      method: 'POST',
+      body: {
+        name,
+        course_id: selectedCourseId,
+        position: highest + 1,
+      },
+    })
+    const module = toModule(created)
     setCourses((current) =>
-      current.map((course) => {
-        if (course.number !== Number(courseNumber)) {
-          return course
+      current.map((item) => {
+        if (item.id !== selectedCourseId) {
+          return item
         }
-
-        return {
-          ...course,
-          modules: [
-            ...course.modules,
-            { number: course.modules.length + 1, name, content: [] },
-          ],
-        }
+        return { ...item, modules: [...item.modules, module] }
       }),
     )
+    return module
   }
 
-  function addContent(courseNumber, moduleNumber, type) {
+  function addContent(courseId, moduleId, type) {
     setCourses((current) =>
       current.map((course) => {
-        if (course.number !== Number(courseNumber)) {
+        if (course.id !== Number(courseId)) {
           return course
         }
 
         return {
           ...course,
           modules: course.modules.map((module) => {
-            if (module.number !== Number(moduleNumber)) {
+            if (module.id !== Number(moduleId)) {
               return module
             }
 
@@ -70,7 +141,7 @@ export function CoursesProvider({ children }) {
 
   return (
     <CoursesContext.Provider
-      value={{ courses, createCourse, addModule, addContent }}
+      value={{ courses, loading, error, createCourse, addModule, addContent }}
     >
       {children}
     </CoursesContext.Provider>
