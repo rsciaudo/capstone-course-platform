@@ -1,24 +1,19 @@
 import { Button, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
-import { useCourses } from '../courses/CoursesContext.jsx'
+import { useGroups } from '../../groups/GroupsContext.jsx'
 
-export default function EditModuleModal({ opened, onClose, courseId, moduleId, name }) {
+export default function EditGroupModal({ opened, onClose, groupId, name }) {
   return (
-    <Modal opened={opened} onClose={onClose} title="edit module">
+    <Modal opened={opened} onClose={onClose} title="edit group">
       {opened ? (
-        <EditModuleForm
-          onClose={onClose}
-          courseId={courseId}
-          moduleId={moduleId}
-          name={name}
-        />
+        <EditGroupForm onClose={onClose} groupId={groupId} name={name} />
       ) : null}
     </Modal>
   )
 }
 
-function EditModuleForm({ onClose, courseId, moduleId, name }) {
-  const { updateModule } = useCourses()
+function EditGroupForm({ onClose, groupId, name }) {
+  const { updateGroup } = useGroups()
   const [nextName, setNextName] = useState(name)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,7 +22,7 @@ function EditModuleForm({ onClose, courseId, moduleId, name }) {
     setError('')
     setSubmitting(true)
     try {
-      await updateModule(courseId, moduleId, { name: nextName.trim() })
+      await updateGroup(groupId, { name: nextName.trim() })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')

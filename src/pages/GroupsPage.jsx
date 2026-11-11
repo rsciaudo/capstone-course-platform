@@ -1,7 +1,7 @@
 import { Button, Loader, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import CreateGroupModal from '../components/CreateGroupModal.jsx'
-import GroupCard from '../components/GroupCard.jsx'
+import GroupCard from '../components/cards/GroupCard.jsx'
+import CreateGroupModal from '../components/modals/CreateGroupModal.jsx'
 import { useGroups } from '../groups/GroupsContext.jsx'
 
 export default function GroupsPage() {

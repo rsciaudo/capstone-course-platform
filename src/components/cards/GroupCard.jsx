@@ -1,10 +1,10 @@
 import { Card, Group, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Link } from 'react-router-dom'
-import { useGroups } from '../groups/GroupsContext.jsx'
-import DeleteButton from './DeleteButton.jsx'
-import EditButton from './EditButton.jsx'
-import EditGroupModal from './EditGroupModal.jsx'
+import { useGroups } from '../../groups/GroupsContext.jsx'
+import DeleteButton from '../buttons/DeleteButton.jsx'
+import EditButton from '../buttons/EditButton.jsx'
+import EditGroupModal from '../modals/EditGroupModal.jsx'
 
 export default function GroupCard({ id, name }) {
   const { deleteGroup } = useGroups()

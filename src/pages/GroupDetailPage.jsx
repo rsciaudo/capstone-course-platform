@@ -2,10 +2,10 @@ import { Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } f
 import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import DeleteButton from '../components/DeleteButton.jsx'
-import EditButton from '../components/EditButton.jsx'
-import EditGroupModal from '../components/EditGroupModal.jsx'
-import UserCard from '../components/UserCard.jsx'
+import DeleteButton from '../components/buttons/DeleteButton.jsx'
+import EditButton from '../components/buttons/EditButton.jsx'
+import UserCard from '../components/cards/UserCard.jsx'
+import EditGroupModal from '../components/modals/EditGroupModal.jsx'
 import { useGroups } from '../groups/GroupsContext.jsx'
 
 const roles = [

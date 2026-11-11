@@ -1,10 +1,10 @@
 import { Card, Group, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Link } from 'react-router-dom'
-import { useCourses } from '../courses/CoursesContext.jsx'
-import DeleteButton from './DeleteButton.jsx'
-import EditButton from './EditButton.jsx'
-import EditModuleModal from './EditModuleModal.jsx'
+import { useCourses } from '../../courses/CoursesContext.jsx'
+import DeleteButton from '../buttons/DeleteButton.jsx'
+import EditButton from '../buttons/EditButton.jsx'
+import EditModuleModal from '../modals/EditModuleModal.jsx'
 
 export default function ModuleCard({ courseId, moduleId, name }) {
   const { deleteModule } = useCourses()

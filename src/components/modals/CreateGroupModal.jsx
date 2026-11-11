@@ -1,6 +1,6 @@
 import { Button, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
-import { useGroups } from '../groups/GroupsContext.jsx'
+import { useGroups } from '../../groups/GroupsContext.jsx'
 
 export default function CreateGroupModal({ opened, onClose }) {
   return (
