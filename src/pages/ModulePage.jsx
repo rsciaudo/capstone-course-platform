@@ -1,10 +1,10 @@
 import { Button, Group, Loader, Menu, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useNavigate, useParams } from 'react-router-dom'
-import ContentCard from '../components/ContentCard.jsx'
-import DeleteButton from '../components/DeleteButton.jsx'
-import EditButton from '../components/EditButton.jsx'
-import EditModuleModal from '../components/EditModuleModal.jsx'
+import DeleteButton from '../components/buttons/DeleteButton.jsx'
+import EditButton from '../components/buttons/EditButton.jsx'
+import ContentCard from '../components/cards/ContentCard.jsx'
+import EditModuleModal from '../components/modals/EditModuleModal.jsx'
 import { contentLabel, useCourses } from '../courses/CoursesContext.jsx'
 
 const contentTypes = ['quiz', 'file', 'slide']

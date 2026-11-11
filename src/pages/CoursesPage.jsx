@@ -1,7 +1,7 @@
 import { Button, Loader, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import CourseCard from '../components/CourseCard.jsx'
-import CreateCourseModal from '../components/CreateCourseModal.jsx'
+import CourseCard from '../components/cards/CourseCard.jsx'
+import CreateCourseModal from '../components/modals/CreateCourseModal.jsx'
 import { useCourses } from '../courses/CoursesContext.jsx'
 
 export default function CoursesPage() {

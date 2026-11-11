@@ -1,7 +1,7 @@
 import { Button, Modal, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
-import { useCourses } from '../courses/CoursesContext.jsx'
-import { useGroups } from '../groups/GroupsContext.jsx'
+import { useCourses } from '../../courses/CoursesContext.jsx'
+import { useGroups } from '../../groups/GroupsContext.jsx'
 
 export default function CreateCourseModal({ opened, onClose }) {
   return (

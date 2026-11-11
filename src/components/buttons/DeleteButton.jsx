@@ -1,6 +1,6 @@
 import { Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import ConfirmDeleteModal from './ConfirmDeleteModal.jsx'
+import ConfirmDeleteModal from '../modals/ConfirmDeleteModal.jsx'
 
 export default function DeleteButton({ name, onDelete }) {
   const [opened, { open, close }] = useDisclosure(false)
