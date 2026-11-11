@@ -1,7 +1,10 @@
-import { Button, Loader, Stack, Text, Title } from '@mantine/core'
+import { Button, Group, Loader, Stack, Text, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import CreateModuleModal from '../components/CreateModuleModal.jsx'
+import DeleteButton from '../components/DeleteButton.jsx'
+import EditButton from '../components/EditButton.jsx'
+import EditCourseModal from '../components/EditCourseModal.jsx'
 import ModuleCard from '../components/ModuleCard.jsx'
 import UserCard from '../components/UserCard.jsx'
 import { useCourses } from '../courses/CoursesContext.jsx'
@@ -9,9 +12,11 @@ import { useGroups } from '../groups/GroupsContext.jsx'
 
 export default function CoursePage() {
   const { id } = useParams()
-  const { courses, loading, error } = useCourses()
+  const navigate = useNavigate()
+  const { courses, loading, error, deleteCourse } = useCourses()
   const { groups } = useGroups()
   const [opened, { open, close }] = useDisclosure(false)
+  const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const courseId = Number(id)
   const course = courses.find((item) => item.id === courseId)
   const modules = course?.modules ?? []
@@ -26,9 +31,22 @@ export default function CoursePage() {
       .map((user) => ({ ...user, groupId: group.id })),
   )
 
+  async function removeCourse() {
+    await deleteCourse(id)
+    navigate('/courses')
+  }
+
   return (
     <Stack>
-      <Title order={1}>{course?.name}</Title>
+      <Group justify="space-between" align="center">
+        <Title order={1}>{course?.name}</Title>
+        {course ? (
+          <Group>
+            <EditButton onClick={openEdit} />
+            <DeleteButton name={course.name} onDelete={removeCourse} />
+          </Group>
+        ) : null}
+      </Group>
       {loading ? <Loader /> : null}
       {error ? <Text c="red">{error}</Text> : null}
       <Button onClick={open} w="fit-content">
@@ -62,6 +80,12 @@ export default function CoursePage() {
           role={user.role}
         />
       ))}
+      <EditCourseModal
+        opened={editing}
+        onClose={closeEdit}
+        courseId={id}
+        name={course?.name ?? ''}
+      />
       <CreateModuleModal opened={opened} onClose={close} courseId={id} />
     </Stack>
   )

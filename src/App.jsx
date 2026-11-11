@@ -16,8 +16,8 @@ import UserDetailPage from './pages/UserDetailPage.jsx'
 export default function App() {
   return (
     <AuthProvider>
-      <CoursesProvider>
-        <GroupsProvider>
+      <GroupsProvider>
+        <CoursesProvider>
           <BrowserRouter>
             <Routes>
               <Route path="login" element={<LoginPage />} />
@@ -44,8 +44,8 @@ export default function App() {
               </Route>
             </Routes>
           </BrowserRouter>
-        </GroupsProvider>
-      </CoursesProvider>
+        </CoursesProvider>
+      </GroupsProvider>
     </AuthProvider>
   )
 }

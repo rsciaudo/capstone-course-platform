@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { useGroups } from '../groups/GroupsContext.jsx'
 
 const CoursesContext = createContext(null)
 
@@ -35,6 +36,7 @@ function toCourse(course, modules) {
 
 export function CoursesProvider({ children }) {
   const { user } = useAuth()
+  const { clearCourse } = useGroups()
   const userId = user?.id ?? null
   const [courses, setCourses] = useState([])
   const [loadedUserId, setLoadedUserId] = useState(null)
@@ -85,6 +87,62 @@ export function CoursesProvider({ children }) {
     const course = toCourse(created, [])
     setCourses((current) => [...current, course])
     return course
+  }
+
+  async function updateCourse(id, { name }) {
+    const updated = await api(`/api/courses/${id}`, {
+      method: 'PATCH',
+      body: { name },
+    })
+    setCourses((current) =>
+      current.map((course) =>
+        course.id === updated.id ? { ...course, name: updated.name } : course,
+      ),
+    )
+    return updated
+  }
+
+  async function deleteCourse(id) {
+    await api(`/api/courses/${id}`, { method: 'DELETE' })
+    const courseId = Number(id)
+    setCourses((current) => current.filter((course) => course.id !== courseId))
+    clearCourse(courseId)
+  }
+
+  async function updateModule(courseId, moduleId, { name }) {
+    const updated = await api(`/api/modules/${moduleId}`, {
+      method: 'PATCH',
+      body: { name },
+    })
+    setCourses((current) =>
+      current.map((course) => {
+        if (course.id !== Number(courseId)) {
+          return course
+        }
+        return {
+          ...course,
+          modules: course.modules.map((module) =>
+            module.id === updated.id ? { ...module, name: updated.name } : module,
+          ),
+        }
+      }),
+    )
+    return updated
+  }
+
+  async function deleteModule(courseId, moduleId) {
+    await api(`/api/modules/${moduleId}`, { method: 'DELETE' })
+    setCourses((current) =>
+      current.map((course) => {
+        if (course.id !== Number(courseId)) {
+          return course
+        }
+        return {
+          ...course,
+          modules: course.modules.filter((module) => module.id !== Number(moduleId)),
+        }
+      }),
+    )
   }
 
   async function addModule(courseId, { name }) {
@@ -141,7 +199,18 @@ export function CoursesProvider({ children }) {
 
   return (
     <CoursesContext.Provider
-      value={{ courses, loading, error, createCourse, addModule, addContent }}
+      value={{
+        courses,
+        loading,
+        error,
+        createCourse,
+        updateCourse,
+        deleteCourse,
+        addModule,
+        updateModule,
+        deleteModule,
+        addContent,
+      }}
     >
       {children}
     </CoursesContext.Provider>

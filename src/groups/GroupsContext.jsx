@@ -66,6 +66,40 @@ export function GroupsProvider({ children }) {
     return group
   }
 
+  async function updateGroup(id, { name }) {
+    const updated = await api(`/api/groups/${id}`, {
+      method: 'PATCH',
+      body: { name },
+    })
+    setGroups((current) =>
+      current.map((group) =>
+        group.id === updated.id ? { ...group, name: updated.name } : group,
+      ),
+    )
+    return updated
+  }
+
+  async function deleteGroup(id) {
+    await api(`/api/groups/${id}`, { method: 'DELETE' })
+    setGroups((current) => current.filter((group) => group.id !== Number(id)))
+  }
+
+  function clearCourse(courseId) {
+    const selected = Number(courseId)
+    setGroups((current) =>
+      current.map((group) => ({
+        ...group,
+        users: group.users.map((user) => ({
+          ...user,
+          courseIds: (user.courseIds ?? []).filter((item) => item !== selected),
+          editableCourseIds: (user.editableCourseIds ?? []).filter(
+            (item) => item !== selected,
+          ),
+        })),
+      })),
+    )
+  }
+
   function addUser(groupId, { name, role }) {
     setGroups((current) =>
       current.map((group) => {
@@ -162,7 +196,18 @@ export function GroupsProvider({ children }) {
 
   return (
     <GroupsContext.Provider
-      value={{ groups, loading, error, addGroup, addUser, enrollUser, grantEditAccess }}
+      value={{
+        groups,
+        loading,
+        error,
+        addGroup,
+        updateGroup,
+        deleteGroup,
+        clearCourse,
+        addUser,
+        enrollUser,
+        grantEditAccess,
+      }}
     >
       {children}
     </GroupsContext.Provider>

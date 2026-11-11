@@ -1,7 +1,10 @@
-import { Button, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import DeleteButton from '../components/DeleteButton.jsx'
+import EditButton from '../components/EditButton.jsx'
+import EditGroupModal from '../components/EditGroupModal.jsx'
 import UserCard from '../components/UserCard.jsx'
 import { useGroups } from '../groups/GroupsContext.jsx'
 
@@ -12,8 +15,10 @@ const roles = [
 
 export default function GroupDetailPage() {
   const { id } = useParams()
-  const { groups, loading, error, addUser } = useGroups()
+  const navigate = useNavigate()
+  const { groups, loading, error, addUser, deleteGroup } = useGroups()
   const [opened, { open, close }] = useDisclosure(false)
+  const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const [name, setName] = useState('')
   const [role, setRole] = useState(null)
   const [groupId, setGroupId] = useState(String(id))
@@ -36,9 +41,22 @@ export default function GroupDetailPage() {
     close()
   }
 
+  async function removeGroup() {
+    await deleteGroup(id)
+    navigate('/groups')
+  }
+
   return (
     <Stack>
-      <Title order={1}>{group?.name}</Title>
+      <Group justify="space-between" align="center">
+        <Title order={1}>{group?.name}</Title>
+        {group ? (
+          <Group>
+            <EditButton onClick={openEdit} />
+            <DeleteButton name={group.name} onDelete={removeGroup} />
+          </Group>
+        ) : null}
+      </Group>
       {loading ? <Loader /> : null}
       {error ? <Text c="red">{error}</Text> : null}
       <Button onClick={openModal} w="fit-content">
@@ -53,6 +71,12 @@ export default function GroupDetailPage() {
           role={user.role}
         />
       ))}
+      <EditGroupModal
+        opened={editing}
+        onClose={closeEdit}
+        groupId={id}
+        name={group?.name ?? ''}
+      />
       <Modal opened={opened} onClose={close} title="add user">
         <Stack>
           <TextInput
