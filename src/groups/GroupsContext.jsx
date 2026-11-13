@@ -8,7 +8,6 @@ function toGroup(group) {
   return {
     id: group.id,
     name: group.name,
-    users: [],
   }
 }
 
@@ -84,116 +83,6 @@ export function GroupsProvider({ children }) {
     setGroups((current) => current.filter((group) => group.id !== Number(id)))
   }
 
-  function clearCourse(courseId) {
-    const selected = Number(courseId)
-    setGroups((current) =>
-      current.map((group) => ({
-        ...group,
-        users: group.users.map((user) => ({
-          ...user,
-          courseIds: (user.courseIds ?? []).filter((item) => item !== selected),
-          editableCourseIds: (user.editableCourseIds ?? []).filter(
-            (item) => item !== selected,
-          ),
-        })),
-      })),
-    )
-  }
-
-  function addUser(groupId, { name, role }) {
-    setGroups((current) =>
-      current.map((group) => {
-        if (group.id !== Number(groupId)) {
-          return group
-        }
-
-        return {
-          ...group,
-          users: [
-            ...group.users,
-            {
-              number: group.users.length + 1,
-              name,
-              role,
-              courseIds: [],
-              editableCourseIds: [],
-            },
-          ],
-        }
-      }),
-    )
-  }
-
-  function enrollUser(groupId, userNumber, courseId) {
-    const selectedCourse = Number(courseId)
-
-    setGroups((current) =>
-      current.map((group) => {
-        if (group.id !== Number(groupId)) {
-          return group
-        }
-
-        return {
-          ...group,
-          users: group.users.map((user) => {
-            if (user.number !== Number(userNumber)) {
-              return user
-            }
-
-            if (user.role !== 'student') {
-              return user
-            }
-
-            const courseIds = user.courseIds ?? []
-            if (courseIds.includes(selectedCourse)) {
-              return user
-            }
-
-            return {
-              ...user,
-              courseIds: [...courseIds, selectedCourse],
-            }
-          }),
-        }
-      }),
-    )
-  }
-
-  function grantEditAccess(groupId, userNumber, courseId) {
-    const selectedCourse = Number(courseId)
-
-    setGroups((current) =>
-      current.map((group) => {
-        if (group.id !== Number(groupId)) {
-          return group
-        }
-
-        return {
-          ...group,
-          users: group.users.map((user) => {
-            if (user.number !== Number(userNumber)) {
-              return user
-            }
-
-            if (user.role !== 'educator') {
-              return user
-            }
-
-            const editableCourseIds = user.editableCourseIds ?? []
-            if (editableCourseIds.includes(selectedCourse)) {
-              return user
-            }
-
-            return {
-              ...user,
-              editableCourseIds: [...editableCourseIds, selectedCourse],
-            }
-          }),
-        }
-      }),
-    )
-  }
-
   return (
     <GroupsContext.Provider
       value={{
@@ -203,10 +92,6 @@ export function GroupsProvider({ children }) {
         addGroup,
         updateGroup,
         deleteGroup,
-        clearCourse,
-        addUser,
-        enrollUser,
-        grantEditAccess,
       }}
     >
       {children}
