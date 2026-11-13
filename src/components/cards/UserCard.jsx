@@ -1,7 +1,11 @@
 import { Badge, Button, Card, Group, Text } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Link } from 'react-router-dom'
+import { useUsers } from '../../users/UsersContext.jsx'
+import DeleteButton from '../buttons/DeleteButton.jsx'
+import EditButton from '../buttons/EditButton.jsx'
 import ConfirmRemoveAccessModal from '../modals/ConfirmRemoveAccessModal.jsx'
+import EditUserModal from '../modals/EditUserModal.jsx'
 
 export default function UserCard({
   groupId,
@@ -12,42 +16,50 @@ export default function UserCard({
   removeLabel,
   onRemove,
 }) {
-  const [opened, { open, close }] = useDisclosure(false)
-  const link = (
-    <Card
-      component={Link}
-      to={`/groups/${groupId}/users/${userId}`}
-      withBorder={!removeLabel}
-      padding="md"
-      flex={1}
-    >
-      <Group justify="space-between">
-        <Text>{name}</Text>
-        <Badge>{role}</Badge>
-      </Group>
-    </Card>
-  )
-
-  if (!removeLabel) {
-    return link
-  }
+  const { deleteUser } = useUsers()
+  const [removing, { open: openRemove, close: closeRemove }] = useDisclosure(false)
+  const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
 
   return (
     <>
-      <Card withBorder>
+      <Card withBorder flex={1}>
         <Group wrap="nowrap">
-          {link}
-          <Button color="red" variant="light" onClick={open}>
-            {removeLabel}
-          </Button>
+          <Card
+            component={Link}
+            to={`/groups/${groupId}/users/${userId}`}
+            padding="md"
+            flex={1}
+          >
+            <Group justify="space-between">
+              <Text>{name}</Text>
+              <Badge>{role}</Badge>
+            </Group>
+          </Card>
+          {removeLabel ? (
+            <Button color="red" variant="light" onClick={openRemove}>
+              {removeLabel}
+            </Button>
+          ) : null}
+          <EditButton onClick={openEdit} />
+          <DeleteButton name={name} onDelete={() => deleteUser(userId)} />
         </Group>
       </Card>
-      <ConfirmRemoveAccessModal
-        opened={opened}
-        onClose={close}
-        userName={name}
-        courseName={courseName}
-        onConfirm={onRemove}
+      {removeLabel ? (
+        <ConfirmRemoveAccessModal
+          opened={removing}
+          onClose={closeRemove}
+          userName={name}
+          courseName={courseName}
+          onConfirm={onRemove}
+        />
+      ) : null}
+      <EditUserModal
+        opened={editing}
+        onClose={closeEdit}
+        userId={userId}
+        name={name}
+        role={role}
+        groupId={groupId}
       />
     </>
   )
