@@ -155,8 +155,13 @@ async def delete_course(
             detail="You cannot edit this course",
         )
 
-    # Grants are the edit permission, so they go with the course. Modules and
-    # enrollments are left in place and make this delete return 409.
+    # Grants and enrollments belong to the course, so they go with it.
+    # Modules are left in place and make this delete return 409.
+    enrollment_rows = await db.execute(
+        select(CourseEnrollment).where(CourseEnrollment.course_id == course.id)
+    )
+    for enrollment in enrollment_rows.scalars().all():
+        await db.delete(enrollment)
     grant_rows = await db.execute(
         select(CourseEditGrant).where(CourseEditGrant.course_id == course.id)
     )

@@ -7,14 +7,16 @@ import ModuleCard from '../components/cards/ModuleCard.jsx'
 import UserCard from '../components/cards/UserCard.jsx'
 import CreateModuleModal from '../components/modals/CreateModuleModal.jsx'
 import EditCourseModal from '../components/modals/EditCourseModal.jsx'
+import { useAuth } from '../auth/AuthContext.jsx'
 import { useCourses } from '../courses/CoursesContext.jsx'
 import { useUsers } from '../users/UsersContext.jsx'
 
 export default function CoursePage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user: currentUser } = useAuth()
   const { courses, loading, error, deleteCourse } = useCourses()
-  const { users } = useUsers()
+  const { users, unenrollUser, removeEditAccess } = useUsers()
   const [opened, { open, close }] = useDisclosure(false)
   const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const courseId = Number(id)
@@ -26,6 +28,11 @@ export default function CoursePage() {
   const editors = users.filter((user) =>
     (user.editableCourseIds ?? []).includes(courseId),
   )
+  const currentRecord = users.find((user) => user.id === currentUser?.id)
+  const canManage =
+    currentUser?.role === 'super-user' ||
+    currentUser?.role === 'admin' ||
+    (currentRecord?.editableCourseIds ?? []).includes(courseId)
 
   async function removeCourse() {
     await deleteCourse(id)
@@ -45,9 +52,13 @@ export default function CoursePage() {
       </Group>
       {loading ? <Loader /> : null}
       {error ? <Text c="red">{error}</Text> : null}
-      <Button onClick={open} w="fit-content">
-        add module
-      </Button>
+
+      <Group justify="space-between"> 
+        <Title order={2}>modules</Title>
+        <Button onClick={open} w="fit-content">
+          add module
+        </Button>
+      </Group>
       {modules.map((module) => (
         <ModuleCard
           key={module.id}
@@ -56,6 +67,7 @@ export default function CoursePage() {
           name={module.name}
         />
       ))}
+      
       <Title order={2}>enrolled users</Title>
       {enrolledUsers.map((user) => (
         <UserCard
@@ -64,6 +76,9 @@ export default function CoursePage() {
           userId={user.id}
           name={user.name}
           role={user.role}
+          courseName={course?.name ?? ''}
+          removeLabel={canManage ? 'unenroll' : undefined}
+          onRemove={() => unenrollUser(user.id, courseId)}
         />
       ))}
       <Title order={2}>editors</Title>
@@ -74,6 +89,9 @@ export default function CoursePage() {
           userId={user.id}
           name={user.name}
           role={user.role}
+          courseName={course?.name ?? ''}
+          removeLabel={canManage ? 'remove edit access' : undefined}
+          onRemove={() => removeEditAccess(user.id, courseId)}
         />
       ))}
       <EditCourseModal

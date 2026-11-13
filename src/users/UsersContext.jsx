@@ -4,15 +4,37 @@ import { useAuth } from '../auth/AuthContext.jsx'
 
 const UsersContext = createContext(null)
 
-function toUser(user) {
+function rowsFor(rows, userId) {
+  return rows.filter((row) => row.user_id === userId)
+}
+
+function courseIdsFor(rows) {
+  return rows.map((row) => row.course_id)
+}
+
+function idsByCourse(rows) {
+  return Object.fromEntries(rows.map((row) => [row.course_id, row.id]))
+}
+
+function withoutCourse(ids, courseId) {
+  const next = { ...(ids ?? {}) }
+  delete next[courseId]
+  return next
+}
+
+function toUser(user, enrollments = [], editGrants = []) {
+  const enrollmentRows = rowsFor(enrollments, user.id)
+  const grantRows = rowsFor(editGrants, user.id)
   return {
     id: user.id,
     name: user.name,
     username: user.username,
     role: user.role,
     groupId: user.group_id,
-    courseIds: [],
-    editableCourseIds: [],
+    courseIds: courseIdsFor(enrollmentRows),
+    editableCourseIds: courseIdsFor(grantRows),
+    enrollmentIds: idsByCourse(enrollmentRows),
+    editGrantIds: idsByCourse(grantRows),
   }
 }
 
@@ -35,12 +57,14 @@ export function UsersProvider({ children }) {
     let active = true
     setError(null)
 
-    api('/api/users')
-      .then((rows) => {
+    Promise.all([api('/api/users'), api('/api/enrollments'), api('/api/edit-grants')])
+      .then(([userRows, enrollmentRows, grantRows]) => {
         if (!active) {
           return
         }
-        setUsers(rows.map(toUser))
+        setUsers(
+          userRows.map((user) => toUser(user, enrollmentRows, grantRows)),
+        )
       })
       .catch((err) => {
         if (!active) {
@@ -85,51 +109,123 @@ export function UsersProvider({ children }) {
         editableCourseIds: (item.editableCourseIds ?? []).filter(
           (id) => id !== selected,
         ),
+        enrollmentIds: withoutCourse(item.enrollmentIds, selected),
+        editGrantIds: withoutCourse(item.editGrantIds, selected),
       })),
     )
   }
 
-  function enrollUser(userIdToEnroll, courseId) {
+  async function enrollUser(userIdToEnroll, courseId) {
     const selectedUser = Number(userIdToEnroll)
     const selectedCourse = Number(courseId)
+    const existing = users.find((item) => item.id === selectedUser)
+    if (
+      !existing ||
+      existing.role !== 'student' ||
+      (existing.courseIds ?? []).includes(selectedCourse)
+    ) {
+      return
+    }
 
+    const created = await api('/api/enrollments', {
+      method: 'POST',
+      body: { user_id: selectedUser, course_id: selectedCourse },
+    })
     setUsers((current) =>
       current.map((item) => {
-        if (item.id !== selectedUser || item.role !== 'student') {
+        if (item.id !== selectedUser) {
           return item
         }
-
-        const courseIds = item.courseIds ?? []
-        if (courseIds.includes(selectedCourse)) {
-          return item
-        }
-
         return {
           ...item,
-          courseIds: [...courseIds, selectedCourse],
+          courseIds: [...(item.courseIds ?? []), selectedCourse],
+          enrollmentIds: {
+            ...(item.enrollmentIds ?? {}),
+            [selectedCourse]: created.id,
+          },
         }
       }),
     )
   }
 
-  function grantEditAccess(userIdToGrant, courseId) {
-    const selectedUser = Number(userIdToGrant)
+  async function unenrollUser(userIdToRemove, courseId) {
+    const selectedUser = Number(userIdToRemove)
     const selectedCourse = Number(courseId)
+    const existing = users.find((item) => item.id === selectedUser)
+    const enrollmentId = existing?.enrollmentIds?.[selectedCourse]
+    if (!enrollmentId) {
+      throw new Error('Enrollment not found')
+    }
 
+    await api(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' })
     setUsers((current) =>
       current.map((item) => {
-        if (item.id !== selectedUser || item.role !== 'educator') {
+        if (item.id !== selectedUser) {
           return item
         }
-
-        const editableCourseIds = item.editableCourseIds ?? []
-        if (editableCourseIds.includes(selectedCourse)) {
-          return item
-        }
-
         return {
           ...item,
-          editableCourseIds: [...editableCourseIds, selectedCourse],
+          courseIds: (item.courseIds ?? []).filter((id) => id !== selectedCourse),
+          enrollmentIds: withoutCourse(item.enrollmentIds, selectedCourse),
+        }
+      }),
+    )
+  }
+
+  async function grantEditAccess(userIdToGrant, courseId) {
+    const selectedUser = Number(userIdToGrant)
+    const selectedCourse = Number(courseId)
+    const existing = users.find((item) => item.id === selectedUser)
+    if (
+      !existing ||
+      existing.role !== 'educator' ||
+      (existing.editableCourseIds ?? []).includes(selectedCourse)
+    ) {
+      return
+    }
+
+    const created = await api('/api/edit-grants', {
+      method: 'POST',
+      body: { user_id: selectedUser, course_id: selectedCourse },
+    })
+    setUsers((current) =>
+      current.map((item) => {
+        if (item.id !== selectedUser) {
+          return item
+        }
+        return {
+          ...item,
+          editableCourseIds: [...(item.editableCourseIds ?? []), selectedCourse],
+          editGrantIds: {
+            ...(item.editGrantIds ?? {}),
+            [selectedCourse]: created.id,
+          },
+        }
+      }),
+    )
+  }
+
+  async function removeEditAccess(userIdToRemove, courseId) {
+    const selectedUser = Number(userIdToRemove)
+    const selectedCourse = Number(courseId)
+    const existing = users.find((item) => item.id === selectedUser)
+    const grantId = existing?.editGrantIds?.[selectedCourse]
+    if (!grantId) {
+      throw new Error('Edit grant not found')
+    }
+
+    await api(`/api/edit-grants/${grantId}`, { method: 'DELETE' })
+    setUsers((current) =>
+      current.map((item) => {
+        if (item.id !== selectedUser) {
+          return item
+        }
+        return {
+          ...item,
+          editableCourseIds: (item.editableCourseIds ?? []).filter(
+            (id) => id !== selectedCourse,
+          ),
+          editGrantIds: withoutCourse(item.editGrantIds, selectedCourse),
         }
       }),
     )
@@ -144,7 +240,9 @@ export function UsersProvider({ children }) {
         addUser,
         clearCourse,
         enrollUser,
+        unenrollUser,
         grantEditAccess,
+        removeEditAccess,
       }}
     >
       {children}

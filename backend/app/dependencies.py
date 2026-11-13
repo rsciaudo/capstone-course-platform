@@ -93,6 +93,16 @@ async def can_edit_course(db: AsyncSession, user: User, course: Course) -> bool:
     return False
 
 
+async def get_user_or_404(db: AsyncSession, user_id: int) -> User:
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    return user
+
+
 async def get_course_or_404(db: AsyncSession, course_id: int) -> Course:
     result = await db.execute(select(Course).where(Course.id == course_id))
     course = result.scalar_one_or_none()
