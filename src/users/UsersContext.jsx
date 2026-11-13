@@ -100,6 +100,35 @@ export function UsersProvider({ children }) {
     return next
   }
 
+  async function updateUser(id, { name, role, groupId }) {
+    const updated = await api(`/api/users/${id}`, {
+      method: 'PATCH',
+      body: {
+        name,
+        role,
+        group_id: Number(groupId),
+      },
+    })
+    setUsers((current) =>
+      current.map((item) =>
+        item.id === updated.id
+          ? {
+              ...item,
+              name: updated.name,
+              role: updated.role,
+              groupId: updated.group_id,
+            }
+          : item,
+      ),
+    )
+    return updated
+  }
+
+  async function deleteUser(id) {
+    await api(`/api/users/${id}`, { method: 'DELETE' })
+    setUsers((current) => current.filter((item) => item.id !== Number(id)))
+  }
+
   function clearCourse(courseId) {
     const selected = Number(courseId)
     setUsers((current) =>
@@ -238,6 +267,8 @@ export function UsersProvider({ children }) {
         loading,
         error,
         addUser,
+        updateUser,
+        deleteUser,
         clearCourse,
         enrollUser,
         unenrollUser,
