@@ -8,27 +8,23 @@ import UserCard from '../components/cards/UserCard.jsx'
 import CreateModuleModal from '../components/modals/CreateModuleModal.jsx'
 import EditCourseModal from '../components/modals/EditCourseModal.jsx'
 import { useCourses } from '../courses/CoursesContext.jsx'
-import { useGroups } from '../groups/GroupsContext.jsx'
+import { useUsers } from '../users/UsersContext.jsx'
 
 export default function CoursePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { courses, loading, error, deleteCourse } = useCourses()
-  const { groups } = useGroups()
+  const { users } = useUsers()
   const [opened, { open, close }] = useDisclosure(false)
   const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const courseId = Number(id)
   const course = courses.find((item) => item.id === courseId)
   const modules = course?.modules ?? []
-  const enrolledUsers = groups.flatMap((group) =>
-    (group.users ?? [])
-      .filter((user) => (user.courseIds ?? []).includes(courseId))
-      .map((user) => ({ ...user, groupId: group.id })),
+  const enrolledUsers = users.filter((user) =>
+    (user.courseIds ?? []).includes(courseId),
   )
-  const editors = groups.flatMap((group) =>
-    (group.users ?? [])
-      .filter((user) => (user.editableCourseIds ?? []).includes(courseId))
-      .map((user) => ({ ...user, groupId: group.id })),
+  const editors = users.filter((user) =>
+    (user.editableCourseIds ?? []).includes(courseId),
   )
 
   async function removeCourse() {
@@ -63,9 +59,9 @@ export default function CoursePage() {
       <Title order={2}>enrolled users</Title>
       {enrolledUsers.map((user) => (
         <UserCard
-          key={`${user.groupId}-${user.number}`}
+          key={user.id}
           groupId={user.groupId}
-          userNumber={user.number}
+          userId={user.id}
           name={user.name}
           role={user.role}
         />
@@ -73,9 +69,9 @@ export default function CoursePage() {
       <Title order={2}>editors</Title>
       {editors.map((user) => (
         <UserCard
-          key={`${user.groupId}-${user.number}`}
+          key={user.id}
           groupId={user.groupId}
-          userNumber={user.number}
+          userId={user.id}
           name={user.name}
           role={user.role}
         />

@@ -1,4 +1,4 @@
-import { Button, Group, Loader, Modal, Select, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Button, Group, Loader, Modal, PasswordInput, Select, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -7,6 +7,7 @@ import EditButton from '../components/buttons/EditButton.jsx'
 import UserCard from '../components/cards/UserCard.jsx'
 import EditGroupModal from '../components/modals/EditGroupModal.jsx'
 import { useGroups } from '../groups/GroupsContext.jsx'
+import { useUsers } from '../users/UsersContext.jsx'
 
 const roles = [
   { value: 'student', label: 'student' },
@@ -16,14 +17,19 @@ const roles = [
 export default function GroupDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { groups, loading, error, addUser, deleteGroup } = useGroups()
+  const { groups, loading: groupsLoading, error: groupsError, deleteGroup } = useGroups()
+  const { users, loading: usersLoading, error: usersError, addUser } = useUsers()
   const [opened, { open, close }] = useDisclosure(false)
   const [editing, { open: openEdit, close: closeEdit }] = useDisclosure(false)
   const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState(null)
   const [groupId, setGroupId] = useState(String(id))
+  const [formError, setFormError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const group = groups.find((item) => item.id === Number(id))
-  const users = group?.users ?? []
+  const groupUsers = users.filter((user) => user.groupId === Number(id))
   const groupOptions = groups.map((item) => ({
     value: String(item.id),
     label: item.name,
@@ -31,14 +37,31 @@ export default function GroupDetailPage() {
 
   function openModal() {
     setName('')
+    setUsername('')
+    setPassword('')
     setRole(null)
     setGroupId(String(id))
+    setFormError('')
     open()
   }
 
-  function submit() {
-    addUser(groupId, { name: name.trim(), role })
-    close()
+  async function submit() {
+    setFormError('')
+    setSubmitting(true)
+    try {
+      await addUser({
+        name: name.trim(),
+        username: username.trim(),
+        password,
+        role,
+        groupId,
+      })
+      close()
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Request failed')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function removeGroup() {
@@ -57,16 +80,17 @@ export default function GroupDetailPage() {
           </Group>
         ) : null}
       </Group>
-      {loading ? <Loader /> : null}
-      {error ? <Text c="red">{error}</Text> : null}
+      {groupsLoading || usersLoading ? <Loader /> : null}
+      {groupsError ? <Text c="red">{groupsError}</Text> : null}
+      {usersError ? <Text c="red">{usersError}</Text> : null}
       <Button onClick={openModal} w="fit-content">
         add user
       </Button>
-      {users.map((user) => (
+      {groupUsers.map((user) => (
         <UserCard
-          key={user.number}
+          key={user.id}
           groupId={id}
-          userNumber={user.number}
+          userId={user.id}
           name={user.name}
           role={user.role}
         />
@@ -84,6 +108,18 @@ export default function GroupDetailPage() {
             value={name}
             onChange={(event) => setName(event.currentTarget.value)}
           />
+          <TextInput
+            label="username"
+            value={username}
+            onChange={(event) => setUsername(event.currentTarget.value)}
+            autoComplete="off"
+          />
+          <PasswordInput
+            label="password"
+            value={password}
+            onChange={(event) => setPassword(event.currentTarget.value)}
+            autoComplete="new-password"
+          />
           <Select
             label="role"
             data={roles}
@@ -98,9 +134,17 @@ export default function GroupDetailPage() {
             onChange={setGroupId}
             allowDeselect={false}
           />
+          {formError ? <Text c="red">{formError}</Text> : null}
           <Button
             onClick={submit}
-            disabled={name.trim() === '' || !role || !groupId}
+            loading={submitting}
+            disabled={
+              name.trim() === '' ||
+              username.trim() === '' ||
+              password === '' ||
+              !role ||
+              !groupId
+            }
           >
             add user
           </Button>

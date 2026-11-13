@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { useGroups } from '../groups/GroupsContext.jsx'
+import { useUsers } from '../users/UsersContext.jsx'
 
 const CoursesContext = createContext(null)
 
@@ -36,7 +36,7 @@ function toCourse(course, modules) {
 
 export function CoursesProvider({ children }) {
   const { user } = useAuth()
-  const { clearCourse } = useGroups()
+  const { clearCourse } = useUsers()
   const userId = user?.id ?? null
   const [courses, setCourses] = useState([])
   const [loadedUserId, setLoadedUserId] = useState(null)
