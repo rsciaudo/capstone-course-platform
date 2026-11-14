@@ -213,6 +213,9 @@ export function CoursesProvider({ children }) {
     if (fileName != null) {
       created.fileName = fileName
     }
+    if (type === 'quiz') {
+      created.questions = []
+    }
 
     setCourses((current) =>
       current.map((course) => {

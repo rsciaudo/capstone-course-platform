@@ -7,6 +7,7 @@ import FileContent from '../components/content/FileContent.jsx'
 import QuizContent from '../components/content/QuizContent.jsx'
 import SlideContent from '../components/content/SlideContent.jsx'
 import EditFileContentModal from '../components/modals/EditFileContentModal.jsx'
+import EditQuizContentModal from '../components/modals/EditQuizContentModal.jsx'
 import { contentLabel, useCourses } from '../courses/CoursesContext.jsx'
 
 const contentComponents = {
@@ -29,27 +30,44 @@ export default function ContentDetailPage() {
     return null
   }
 
-  function removeFile() {
+  function removeContent() {
     deleteContent(id, moduleId, item.number)
     navigate(`/courses/${id}/modules/${moduleId}`)
   }
 
   const Content = contentComponents[item.type]
+  const canManage = item.type === 'file' || item.type === 'quiz'
 
   return (
     <Stack>
       <Group justify="space-between" align="center">
         <Title order={1}>{contentLabel(content, item)}</Title>
-        {item.type === 'file' ? (
+        {canManage ? (
           <Group>
             <EditButton onClick={open} />
-            <DeleteButton name={item.name} onDelete={removeFile} />
+            <DeleteButton name={item.name} onDelete={removeContent} />
           </Group>
         ) : null}
       </Group>
-      <Content fileUrl={item.fileUrl} />
+      <Content
+        fileUrl={item.fileUrl}
+        courseId={id}
+        moduleId={moduleId}
+        contentNumber={item.number}
+        questions={item.questions}
+      />
       {item.type === 'file' ? (
         <EditFileContentModal
+          opened={editing}
+          onClose={close}
+          courseId={id}
+          moduleId={moduleId}
+          contentNumber={item.number}
+          name={item.name ?? ''}
+        />
+      ) : null}
+      {item.type === 'quiz' ? (
+        <EditQuizContentModal
           opened={editing}
           onClose={close}
           courseId={id}
