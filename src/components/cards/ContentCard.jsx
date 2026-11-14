@@ -17,6 +17,23 @@ export default function ContentCard({
   const [editing, { open, close }] = useDisclosure(false)
   const to = `/courses/${courseId}/modules/${moduleId}/content/${contentNumber}`
 
+  function remove() {
+    deleteContent(courseId, moduleId, contentNumber)
+  }
+
+  if (type === 'quiz') {
+    return (
+      <Card withBorder flex={1}>
+        <Group wrap="nowrap">
+          <Card component={Link} to={to} padding="md" flex={1}>
+            <Text>{label}</Text>
+          </Card>
+          <DeleteButton name={label} onDelete={remove} />
+        </Group>
+      </Card>
+    )
+  }
+
   if (type !== 'file') {
     return (
       <Card component={Link} to={to} withBorder padding="md">
@@ -32,21 +49,9 @@ export default function ContentCard({
           <Card component={Link} to={to} padding="md" flex={1}>
             <Text>{label}</Text>
           </Card>
-          <EditButton onClick={open} />
-          <DeleteButton
-            name={label}
-            onDelete={() => deleteContent(courseId, moduleId, contentNumber)}
-          />
+          <DeleteButton name={label} onDelete={remove} />
         </Group>
       </Card>
-      <EditFileContentModal
-        opened={editing}
-        onClose={close}
-        courseId={courseId}
-        moduleId={moduleId}
-        contentNumber={contentNumber}
-        name={label}
-      />
     </>
   )
 }
