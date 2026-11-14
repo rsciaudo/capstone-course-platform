@@ -1,5 +1,9 @@
-import { Text } from '@mantine/core'
-
-export default function FileContent() {
-  return <Text>file will be implemented and edited here</Text>
+export default function FileContent({ fileUrl }) {
+  return (
+    <iframe
+      src={fileUrl}
+      title="file preview"
+      style={{ width: '100%', height: '70vh', border: 'none' }}
+    />
+  )
 }

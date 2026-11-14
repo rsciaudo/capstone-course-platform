@@ -6,11 +6,27 @@ import { useUsers } from '../users/UsersContext.jsx'
 const CoursesContext = createContext(null)
 
 export function contentLabel(content, item) {
+  if (item.name) {
+    return item.name
+  }
+
   const count = content.filter(
     (entry) => entry.type === item.type && entry.number <= item.number,
   ).length
 
   return `${item.type} ${count}`
+}
+
+function revokeFileUrl(item) {
+  if (item?.fileUrl) {
+    URL.revokeObjectURL(item.fileUrl)
+  }
+}
+
+function moduleContent(courses, courseId, moduleId) {
+  const course = courses.find((item) => item.id === Number(courseId))
+  const module = course?.modules.find((item) => item.id === Number(moduleId))
+  return module?.content ?? []
 }
 
 function toModule(module) {
@@ -105,7 +121,13 @@ export function CoursesProvider({ children }) {
   async function deleteCourse(id) {
     await api(`/api/courses/${id}`, { method: 'DELETE' })
     const courseId = Number(id)
-    setCourses((current) => current.filter((course) => course.id !== courseId))
+    const course = courses.find((item) => item.id === courseId)
+    for (const module of course?.modules ?? []) {
+      for (const item of module.content ?? []) {
+        revokeFileUrl(item)
+      }
+    }
+    setCourses((current) => current.filter((item) => item.id !== courseId))
     clearCourse(courseId)
   }
 
@@ -132,6 +154,9 @@ export function CoursesProvider({ children }) {
 
   async function deleteModule(courseId, moduleId) {
     await api(`/api/modules/${moduleId}`, { method: 'DELETE' })
+    for (const item of moduleContent(courses, courseId, moduleId)) {
+      revokeFileUrl(item)
+    }
     setCourses((current) =>
       current.map((course) => {
         if (course.id !== Number(courseId)) {
@@ -172,9 +197,57 @@ export function CoursesProvider({ children }) {
     return module
   }
 
-  function addContent(courseId, moduleId, type) {
+  function addContent(courseId, moduleId, { type, name, fileUrl, fileName }) {
+    const selectedCourseId = Number(courseId)
+    const selectedModuleId = Number(moduleId)
+    const content = moduleContent(courses, selectedCourseId, selectedModuleId)
+    const number =
+      content.reduce((max, item) => Math.max(max, item.number ?? 0), 0) + 1
+    const created = { number, type }
+    if (name != null) {
+      created.name = name
+    }
+    if (fileUrl != null) {
+      created.fileUrl = fileUrl
+    }
+    if (fileName != null) {
+      created.fileName = fileName
+    }
+
     setCourses((current) =>
       current.map((course) => {
+        if (course.id !== selectedCourseId) {
+          return course
+        }
+
+        return {
+          ...course,
+          modules: course.modules.map((module) => {
+            if (module.id !== selectedModuleId) {
+              return module
+            }
+
+            return {
+              ...module,
+              content: [...(module.content ?? []), created],
+            }
+          }),
+        }
+      }),
+    )
+    return created
+  }
+
+  function updateContent(courseId, moduleId, number, patch) {
+    const current = moduleContent(courses, courseId, moduleId).find(
+      (item) => item.number === Number(number),
+    )
+    if (patch.fileUrl && current?.fileUrl && patch.fileUrl !== current.fileUrl) {
+      URL.revokeObjectURL(current.fileUrl)
+    }
+
+    setCourses((list) =>
+      list.map((course) => {
         if (course.id !== Number(courseId)) {
           return course
         }
@@ -186,10 +259,42 @@ export function CoursesProvider({ children }) {
               return module
             }
 
-            const content = module.content ?? []
             return {
               ...module,
-              content: [...content, { number: content.length + 1, type }],
+              content: (module.content ?? []).map((item) =>
+                item.number === Number(number) ? { ...item, ...patch } : item,
+              ),
+            }
+          }),
+        }
+      }),
+    )
+  }
+
+  function deleteContent(courseId, moduleId, number) {
+    const current = moduleContent(courses, courseId, moduleId).find(
+      (item) => item.number === Number(number),
+    )
+    revokeFileUrl(current)
+
+    setCourses((list) =>
+      list.map((course) => {
+        if (course.id !== Number(courseId)) {
+          return course
+        }
+
+        return {
+          ...course,
+          modules: course.modules.map((module) => {
+            if (module.id !== Number(moduleId)) {
+              return module
+            }
+
+            return {
+              ...module,
+              content: (module.content ?? []).filter(
+                (item) => item.number !== Number(number),
+              ),
             }
           }),
         }
@@ -210,6 +315,8 @@ export function CoursesProvider({ children }) {
         updateModule,
         deleteModule,
         addContent,
+        updateContent,
+        deleteContent,
       }}
     >
       {children}

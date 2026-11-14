@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import DeleteButton from '../components/buttons/DeleteButton.jsx'
 import EditButton from '../components/buttons/EditButton.jsx'
 import ContentCard from '../components/cards/ContentCard.jsx'
+import CreateFileContentModal from '../components/modals/CreateFileContentModal.jsx'
+import CreateQuizContentModal from '../components/modals/CreateQuizContentModal.jsx'
 import EditModuleModal from '../components/modals/EditModuleModal.jsx'
 import { contentLabel, useCourses } from '../courses/CoursesContext.jsx'
 
@@ -14,6 +16,8 @@ export default function ModulePage() {
   const navigate = useNavigate()
   const { courses, loading, error, addContent, deleteModule } = useCourses()
   const [editing, { open, close }] = useDisclosure(false)
+  const [creatingFile, { open: openFile, close: closeFile }] = useDisclosure(false)
+  const [creatingQuiz, { open: openQuiz, close: closeQuiz }] = useDisclosure(false)
   const course = courses.find((item) => item.id === Number(id))
   const module = course?.modules.find((item) => item.id === Number(moduleId))
   const content = module?.content ?? []
@@ -21,6 +25,18 @@ export default function ModulePage() {
   async function removeModule() {
     await deleteModule(id, moduleId)
     navigate(`/courses/${id}`)
+  }
+
+  function addCourseContent(type) {
+    if (type === 'file') {
+      openFile()
+      return
+    }
+    if (type === 'quiz') {
+      openQuiz()
+      return
+    }
+    addContent(id, moduleId, { type })
   }
 
   return (
@@ -42,7 +58,7 @@ export default function ModulePage() {
         </Menu.Target>
         <Menu.Dropdown>
           {contentTypes.map((type) => (
-            <Menu.Item key={type} onClick={() => addContent(id, moduleId, type)}>
+            <Menu.Item key={type} onClick={() => addCourseContent(type)}>
               {type}
             </Menu.Item>
           ))}
@@ -55,6 +71,18 @@ export default function ModulePage() {
         moduleId={moduleId}
         name={module?.name ?? ''}
       />
+      <CreateFileContentModal
+        opened={creatingFile}
+        onClose={closeFile}
+        courseId={id}
+        moduleId={moduleId}
+      />
+      <CreateQuizContentModal
+        opened={creatingQuiz}
+        onClose={closeQuiz}
+        courseId={id}
+        moduleId={moduleId}
+      />
       {content.map((item) => (
         <ContentCard
           key={item.number}
@@ -62,6 +90,7 @@ export default function ModulePage() {
           moduleId={moduleId}
           contentNumber={item.number}
           label={contentLabel(content, item)}
+          type={item.type}
         />
       ))}
     </Stack>
