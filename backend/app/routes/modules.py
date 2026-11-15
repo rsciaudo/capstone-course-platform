@@ -10,7 +10,8 @@ from app.dependencies import (
     get_course_or_404,
     get_current_user,
 )
-from app.models import Course, CourseEnrollment, Group, Module, User
+from app.file_storage import remove_stored_file
+from app.models import ContentFile, ContentItem, Course, CourseEnrollment, Group, Module, User
 from app.schemas.module import ModuleCreate, ModuleRead, ModuleUpdate
 
 router = APIRouter(prefix="/modules", tags=["modules"])
@@ -157,6 +158,12 @@ async def delete_module(
             detail="You cannot edit this course",
         )
 
+    stored_files = await db.execute(
+        select(ContentFile.storage_path)
+        .join(ContentItem, ContentFile.content_item_id == ContentItem.id)
+        .where(ContentItem.module_id == module.id)
+    )
+    paths = list(stored_files.scalars().all())
     await db.delete(module)
     try:
         await db.commit()
@@ -166,3 +173,5 @@ async def delete_module(
             status_code=status.HTTP_409_CONFLICT,
             detail="Module is still referenced by another record",
         )
+    for path in paths:
+        remove_stored_file(path)

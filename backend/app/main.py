@@ -9,7 +9,19 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.database import SessionLocal, engine
 from app.models import Base
-from app.routes import auth, courses, edit_grants, enrollments, groups, modules, users
+from app.routes import (
+    auth,
+    content,
+    courses,
+    edit_grants,
+    enrollments,
+    files,
+    groups,
+    modules,
+    quizzes,
+    slides,
+    users,
+)
 from app.seed import seed_users
 
 
@@ -35,6 +47,10 @@ app.include_router(users.router, prefix="/api")
 app.include_router(groups.router, prefix="/api")
 app.include_router(courses.router, prefix="/api")
 app.include_router(modules.router, prefix="/api")
+app.include_router(content.router, prefix="/api")
+app.include_router(files.router, prefix="/api")
+app.include_router(slides.router, prefix="/api")
+app.include_router(quizzes.router, prefix="/api")
 app.include_router(enrollments.router, prefix="/api")
 app.include_router(edit_grants.router, prefix="/api")
 
