@@ -7,6 +7,20 @@ export async function api(path, { method = 'GET', body } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 
+  return readResponse(response)
+}
+
+export async function apiForm(path, { method = 'POST', body }) {
+  const response = await fetch(path, {
+    method,
+    credentials: 'include',
+    body,
+  })
+
+  return readResponse(response)
+}
+
+async function readResponse(response) {
   if (response.status === 204) {
     return null
   }

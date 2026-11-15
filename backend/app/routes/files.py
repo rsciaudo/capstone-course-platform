@@ -93,6 +93,7 @@ async def download_file(
         stored.storage_path,
         media_type=stored.content_type,
         filename=stored.filename,
+        content_disposition_type="inline",
     )
 
 

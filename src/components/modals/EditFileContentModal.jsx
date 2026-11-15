@@ -11,7 +11,7 @@ export default function EditFileContentModal({
   onClose,
   courseId,
   moduleId,
-  contentNumber,
+  contentId,
   name,
 }) {
   return (
@@ -21,7 +21,7 @@ export default function EditFileContentModal({
           onClose={onClose}
           courseId={courseId}
           moduleId={moduleId}
-          contentNumber={contentNumber}
+          contentId={contentId}
           name={name}
         />
       ) : null}
@@ -29,24 +29,31 @@ export default function EditFileContentModal({
   )
 }
 
-function EditFileContentForm({ onClose, courseId, moduleId, contentNumber, name }) {
-  const { updateContent } = useCourses()
+function EditFileContentForm({ onClose, courseId, moduleId, contentId, name }) {
+  const { updateFile } = useCourses()
   const [nextName, setNextName] = useState(name)
   const [file, setFile] = useState(null)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const fileError = file && !isImageOrPdf(file) ? 'Choose an image or PDF' : ''
 
-  function submit() {
+  async function submit() {
     if (file && !isImageOrPdf(file)) {
       return
     }
 
-    const patch = { name: nextName.trim() }
-    if (file) {
-      patch.fileUrl = URL.createObjectURL(file)
-      patch.fileName = file.name
+    setError('')
+    setSubmitting(true)
+    try {
+      await updateFile(courseId, moduleId, contentId, {
+        name: nextName.trim(),
+        file,
+      })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
     }
-    updateContent(courseId, moduleId, contentNumber, patch)
-    onClose()
   }
 
   return (
@@ -64,8 +71,10 @@ function EditFileContentForm({ onClose, courseId, moduleId, contentNumber, name 
         placeholder="keep current file"
       />
       {fileError ? <Text c="red">{fileError}</Text> : null}
+      {error ? <Text c="red">{error}</Text> : null}
       <Button
         onClick={submit}
+        loading={submitting}
         disabled={nextName.trim() === '' || fileError !== ''}
       >
         save

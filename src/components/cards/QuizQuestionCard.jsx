@@ -19,7 +19,7 @@ export default function QuizQuestionCard({ question, onSave, onDelete }) {
             </Group>
           </Group>
           {question.choices.map((choice) => (
-            <Group key={choice.number} justify="space-between" wrap="nowrap">
+            <Group key={choice.id} justify="space-between" wrap="nowrap">
               <Text>{choice.text}</Text>
               {choice.correct ? <Text aria-label="correct answer">✓</Text> : null}
             </Group>

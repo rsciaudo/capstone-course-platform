@@ -21,7 +21,8 @@ export function toQuestionDraft(text, choices) {
   return {
     text: text.trim(),
     choices: choices.map((choice, index) => ({
-      number: index + 1,
+      id: choice.id,
+      position: index + 1,
       text: choice.text.trim(),
       correct: choice.correct,
     })),
