@@ -85,10 +85,10 @@ export default function ModulePage() {
       />
       {content.map((item) => (
         <ContentCard
-          key={item.number}
+          key={item.id}
           courseId={id}
           moduleId={moduleId}
-          contentNumber={item.number}
+          contentId={item.id}
           label={contentLabel(content, item)}
           type={item.type}
         />

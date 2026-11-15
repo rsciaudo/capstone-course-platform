@@ -4,27 +4,10 @@ import QuizQuestionCard from '../cards/QuizQuestionCard.jsx'
 import CreateQuizQuestionModal from '../modals/CreateQuizQuestionModal.jsx'
 import { useCourses } from '../../courses/CoursesContext.jsx'
 
-export default function QuizContent({ courseId, moduleId, contentNumber, questions }) {
-  const { updateContent } = useCourses()
+export default function QuizContent({ courseId, moduleId, contentId, questions }) {
+  const { addQuestion, saveQuestion, deleteQuestion } = useCourses()
   const [creating, { open, close }] = useDisclosure(false)
   const list = questions ?? []
-
-  function save(next) {
-    updateContent(courseId, moduleId, contentNumber, { questions: next })
-  }
-
-  function addQuestion(draft) {
-    const number = list.reduce((max, question) => Math.max(max, question.number ?? 0), 0) + 1
-    save([...list, { number, ...draft }])
-  }
-
-  function updateQuestion(number, draft) {
-    save(list.map((question) => (question.number === number ? { number, ...draft } : question)))
-  }
-
-  function deleteQuestion(number) {
-    save(list.filter((question) => question.number !== number))
-  }
 
   return (
     <Stack>
@@ -36,13 +19,17 @@ export default function QuizContent({ courseId, moduleId, contentNumber, questio
       </Group>
       {list.map((question) => (
         <QuizQuestionCard
-          key={question.number}
+          key={question.id}
           question={question}
-          onSave={(draft) => updateQuestion(question.number, draft)}
-          onDelete={() => deleteQuestion(question.number)}
+          onSave={(draft) => saveQuestion(courseId, moduleId, contentId, question.id, draft)}
+          onDelete={() => deleteQuestion(courseId, moduleId, contentId, question.id)}
         />
       ))}
-      <CreateQuizQuestionModal opened={creating} onClose={close} onSubmit={addQuestion} />
+      <CreateQuizQuestionModal
+        opened={creating}
+        onClose={close}
+        onSubmit={(draft) => addQuestion(courseId, moduleId, contentId, draft)}
+      />
     </Stack>
   )
 }

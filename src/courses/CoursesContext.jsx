@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { api } from '../api/client.js'
+import { api, apiForm } from '../api/client.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { useUsers } from '../users/UsersContext.jsx'
 
@@ -17,16 +17,85 @@ export function contentLabel(content, item) {
   return `${item.type} ${count}`
 }
 
-function revokeFileUrl(item) {
-  if (item?.fileUrl) {
-    URL.revokeObjectURL(item.fileUrl)
-  }
-}
-
 function moduleContent(courses, courseId, moduleId) {
   const course = courses.find((item) => item.id === Number(courseId))
   const module = course?.modules.find((item) => item.id === Number(moduleId))
   return module?.content ?? []
+}
+
+function nextPosition(content) {
+  return content.reduce((max, item) => Math.max(max, item.position ?? 0), 0) + 1
+}
+
+function sameId(item, contentId) {
+  return String(item.id) === String(contentId)
+}
+
+function withModuleContent(courses, courseId, moduleId, update) {
+  return courses.map((course) => {
+    if (course.id !== Number(courseId)) {
+      return course
+    }
+    return {
+      ...course,
+      modules: course.modules.map((module) => {
+        if (module.id !== Number(moduleId)) {
+          return module
+        }
+        return { ...module, content: update(module.content ?? []) }
+      }),
+    }
+  })
+}
+
+function placeContent(content, item) {
+  const next = content.some((entry) => sameId(entry, item.id))
+    ? content.map((entry) => (sameId(entry, item.id) ? item : entry))
+    : [...content, item]
+  return next.sort((left, right) => left.position - right.position)
+}
+
+function toChoice(choice) {
+  return {
+    id: choice.id,
+    text: choice.text,
+    position: choice.position,
+    correct: choice.is_correct,
+  }
+}
+
+function toQuestion(question) {
+  return {
+    id: question.id,
+    text: question.text,
+    position: question.position,
+    choices: (question.choices ?? [])
+      .map(toChoice)
+      .sort((left, right) => left.position - right.position),
+  }
+}
+
+function toContent(row) {
+  const item = {
+    id: row.id,
+    type: row.type,
+    name: row.title,
+    position: row.position,
+  }
+  if (row.type === 'file') {
+    item.fileName = row.filename
+    item.contentType = row.content_type
+    item.fileUrl = `/api/files/${row.id}`
+  }
+  if (row.type === 'slide') {
+    item.slideData = row.slide_data
+  }
+  if (row.type === 'quiz') {
+    item.questions = (row.questions ?? [])
+      .map(toQuestion)
+      .sort((left, right) => left.position - right.position)
+  }
+  return item
 }
 
 function toModule(module) {
@@ -38,7 +107,7 @@ function toModule(module) {
   }
 }
 
-function toCourse(course, modules) {
+function toCourse(course, modules, contentRows = []) {
   return {
     id: course.id,
     name: course.name,
@@ -46,8 +115,18 @@ function toCourse(course, modules) {
     modules: modules
       .filter((module) => module.course_id === course.id)
       .sort((left, right) => left.position - right.position)
-      .map(toModule),
+      .map((module) => ({
+        ...toModule(module),
+        content: contentRows
+          .filter((row) => row.module_id === module.id)
+          .map(toContent)
+          .sort((left, right) => left.position - right.position),
+      })),
   }
+}
+
+function findQuiz(courses, courseId, moduleId, contentId) {
+  return moduleContent(courses, courseId, moduleId).find((item) => sameId(item, contentId))
 }
 
 export function CoursesProvider({ children }) {
@@ -70,12 +149,14 @@ export function CoursesProvider({ children }) {
     let active = true
     setError(null)
 
-    Promise.all([api('/api/courses'), api('/api/modules')])
-      .then(([courseRows, moduleRows]) => {
+    Promise.all([api('/api/courses'), api('/api/modules'), api('/api/content')])
+      .then(([courseRows, moduleRows, contentRows]) => {
         if (!active) {
           return
         }
-        setCourses(courseRows.map((course) => toCourse(course, moduleRows)))
+        setCourses(
+          courseRows.map((course) => toCourse(course, moduleRows, contentRows)),
+        )
       })
       .catch((err) => {
         if (!active) {
@@ -121,12 +202,6 @@ export function CoursesProvider({ children }) {
   async function deleteCourse(id) {
     await api(`/api/courses/${id}`, { method: 'DELETE' })
     const courseId = Number(id)
-    const course = courses.find((item) => item.id === courseId)
-    for (const module of course?.modules ?? []) {
-      for (const item of module.content ?? []) {
-        revokeFileUrl(item)
-      }
-    }
     setCourses((current) => current.filter((item) => item.id !== courseId))
     clearCourse(courseId)
   }
@@ -154,9 +229,6 @@ export function CoursesProvider({ children }) {
 
   async function deleteModule(courseId, moduleId) {
     await api(`/api/modules/${moduleId}`, { method: 'DELETE' })
-    for (const item of moduleContent(courses, courseId, moduleId)) {
-      revokeFileUrl(item)
-    }
     setCourses((current) =>
       current.map((course) => {
         if (course.id !== Number(courseId)) {
@@ -197,112 +269,209 @@ export function CoursesProvider({ children }) {
     return module
   }
 
-  function addContent(courseId, moduleId, { type, name, fileUrl, fileName }) {
+  function addContent(courseId, moduleId, { type }) {
     const selectedCourseId = Number(courseId)
     const selectedModuleId = Number(moduleId)
     const content = moduleContent(courses, selectedCourseId, selectedModuleId)
-    const number =
-      content.reduce((max, item) => Math.max(max, item.number ?? 0), 0) + 1
-    const created = { number, type }
-    if (name != null) {
-      created.name = name
-    }
-    if (fileUrl != null) {
-      created.fileUrl = fileUrl
-    }
-    if (fileName != null) {
-      created.fileName = fileName
-    }
-    if (type === 'quiz') {
-      created.questions = []
+    const number = content.reduce((max, item) => Math.max(max, item.number ?? 0), 0) + 1
+    const created = {
+      id: `local-${number}`,
+      number,
+      type,
+      position: nextPosition(content),
     }
 
     setCourses((current) =>
-      current.map((course) => {
-        if (course.id !== selectedCourseId) {
-          return course
-        }
-
-        return {
-          ...course,
-          modules: course.modules.map((module) => {
-            if (module.id !== selectedModuleId) {
-              return module
-            }
-
-            return {
-              ...module,
-              content: [...(module.content ?? []), created],
-            }
-          }),
-        }
-      }),
+      withModuleContent(current, selectedCourseId, selectedModuleId, (items) =>
+        placeContent(items, created),
+      ),
     )
     return created
   }
 
-  function updateContent(courseId, moduleId, number, patch) {
-    const current = moduleContent(courses, courseId, moduleId).find(
-      (item) => item.number === Number(number),
+  function storeContent(courseId, moduleId, item) {
+    setCourses((current) =>
+      withModuleContent(current, courseId, moduleId, (content) => placeContent(content, item)),
     )
-    if (patch.fileUrl && current?.fileUrl && patch.fileUrl !== current.fileUrl) {
-      URL.revokeObjectURL(current.fileUrl)
+    return item
+  }
+
+  async function createFile(courseId, moduleId, { name, file }) {
+    const position = nextPosition(moduleContent(courses, courseId, moduleId))
+    const body = new FormData()
+    body.append('module_id', String(moduleId))
+    body.append('title', name)
+    body.append('position', String(position))
+    body.append('file', file)
+    const created = await apiForm('/api/files', { method: 'POST', body })
+    return storeContent(courseId, moduleId, toContent(created))
+  }
+
+  async function updateFile(courseId, moduleId, contentId, { name, file }) {
+    const current = moduleContent(courses, courseId, moduleId).find((item) =>
+      sameId(item, contentId),
+    )
+    let row = null
+    if (current?.name !== name) {
+      row = await api(`/api/content/${contentId}`, {
+        method: 'PATCH',
+        body: { title: name },
+      })
     }
+    if (file) {
+      const body = new FormData()
+      body.append('file', file)
+      row = await apiForm(`/api/files/${contentId}`, { method: 'PATCH', body })
+    }
+    if (!row) {
+      return current
+    }
+    const item = toContent(row)
+    if (file) {
+      item.fileUrl = `${item.fileUrl}?t=${Date.now()}`
+    }
+    return storeContent(courseId, moduleId, item)
+  }
 
-    setCourses((list) =>
-      list.map((course) => {
-        if (course.id !== Number(courseId)) {
-          return course
-        }
+  async function createQuiz(courseId, moduleId, { name }) {
+    const position = nextPosition(moduleContent(courses, courseId, moduleId))
+    const created = await api('/api/quizzes', {
+      method: 'POST',
+      body: { module_id: Number(moduleId), title: name, position },
+    })
+    return storeContent(courseId, moduleId, toContent(created))
+  }
 
-        return {
-          ...course,
-          modules: course.modules.map((module) => {
-            if (module.id !== Number(moduleId)) {
-              return module
-            }
+  async function renameContent(courseId, moduleId, contentId, name) {
+    const updated = await api(`/api/content/${contentId}`, {
+      method: 'PATCH',
+      body: { title: name },
+    })
+    return storeContent(courseId, moduleId, toContent(updated))
+  }
 
-            return {
-              ...module,
-              content: (module.content ?? []).map((item) =>
-                item.number === Number(number) ? { ...item, ...patch } : item,
-              ),
-            }
-          }),
-        }
-      }),
+  async function deleteContent(courseId, moduleId, contentId) {
+    if (!String(contentId).startsWith('local-')) {
+      await api(`/api/content/${contentId}`, { method: 'DELETE' })
+    }
+    setCourses((current) =>
+      withModuleContent(current, courseId, moduleId, (content) =>
+        content.filter((item) => !sameId(item, contentId)),
+      ),
     )
   }
 
-  function deleteContent(courseId, moduleId, number) {
-    const current = moduleContent(courses, courseId, moduleId).find(
-      (item) => item.number === Number(number),
-    )
-    revokeFileUrl(current)
+  async function refreshContent(courseId, moduleId, contentId) {
+    const row = await api(`/api/content/${contentId}`)
+    return storeContent(courseId, moduleId, toContent(row))
+  }
 
-    setCourses((list) =>
-      list.map((course) => {
-        if (course.id !== Number(courseId)) {
-          return course
+  async function addQuestion(courseId, moduleId, contentId, draft) {
+    const quiz = findQuiz(courses, courseId, moduleId, contentId)
+    const position =
+      (quiz?.questions ?? []).reduce(
+        (max, question) => Math.max(max, question.position ?? 0),
+        0,
+      ) + 1
+    try {
+      await api(`/api/quizzes/${contentId}/questions`, {
+        method: 'POST',
+        body: {
+          text: draft.text,
+          position,
+          choices: draft.choices.map((choice) => ({
+            text: choice.text,
+            position: choice.position,
+            is_correct: choice.correct,
+          })),
+        },
+      })
+      await refreshContent(courseId, moduleId, contentId)
+    } catch (err) {
+      await refreshContent(courseId, moduleId, contentId).catch(() => {})
+      throw err
+    }
+  }
+
+  async function deleteQuestion(courseId, moduleId, contentId, questionId) {
+    try {
+      await api(`/api/questions/${questionId}`, { method: 'DELETE' })
+      await refreshContent(courseId, moduleId, contentId)
+    } catch (err) {
+      await refreshContent(courseId, moduleId, contentId).catch(() => {})
+      throw err
+    }
+  }
+
+  async function saveQuestion(courseId, moduleId, contentId, questionId, draft) {
+    const quiz = findQuiz(courses, courseId, moduleId, contentId)
+    const existing = (quiz?.questions ?? []).find((question) => question.id === questionId)
+    if (!existing) {
+      throw new Error('Question not found')
+    }
+
+    try {
+      if (draft.text !== existing.text) {
+        await api(`/api/questions/${questionId}`, {
+          method: 'PATCH',
+          body: { text: draft.text },
+        })
+      }
+
+      const added = draft.choices.filter((choice) => choice.id == null)
+      const kept = draft.choices.filter((choice) => choice.id != null)
+      const removed = existing.choices.filter(
+        (choice) => !kept.some((item) => item.id === choice.id),
+      )
+      const choicePosition = existing.choices.reduce(
+        (max, choice) => Math.max(max, choice.position ?? 0),
+        0,
+      )
+      const addedWithPositions = added.map((choice, offset) => ({
+        choice,
+        position: choicePosition + offset + 1,
+      }))
+      const correctAdded = addedWithPositions.find((item) => item.choice.correct)
+      const orderedAdded = correctAdded
+        ? [correctAdded, ...addedWithPositions.filter((item) => item !== correctAdded)]
+        : addedWithPositions
+      for (const item of orderedAdded) {
+        await api(`/api/questions/${questionId}/choices`, {
+          method: 'POST',
+          body: {
+            text: item.choice.text,
+            position: item.position,
+            is_correct: item.choice.correct,
+          },
+        })
+      }
+
+      for (const choice of kept) {
+        const previous = existing.choices.find((item) => item.id === choice.id)
+        if (!previous) {
+          continue
         }
-
-        return {
-          ...course,
-          modules: course.modules.map((module) => {
-            if (module.id !== Number(moduleId)) {
-              return module
-            }
-
-            return {
-              ...module,
-              content: (module.content ?? []).filter(
-                (item) => item.number !== Number(number),
-              ),
-            }
-          }),
+        const patch = {}
+        if (previous.text !== choice.text) {
+          patch.text = choice.text
         }
-      }),
-    )
+        if (!previous.correct && choice.correct) {
+          patch.is_correct = true
+        }
+        if (Object.keys(patch).length > 0) {
+          await api(`/api/choices/${choice.id}`, { method: 'PATCH', body: patch })
+        }
+      }
+
+      for (const choice of removed) {
+        await api(`/api/choices/${choice.id}`, { method: 'DELETE' })
+      }
+
+      await refreshContent(courseId, moduleId, contentId)
+    } catch (err) {
+      await refreshContent(courseId, moduleId, contentId).catch(() => {})
+      throw err
+    }
   }
 
   return (
@@ -318,8 +487,14 @@ export function CoursesProvider({ children }) {
         updateModule,
         deleteModule,
         addContent,
-        updateContent,
+        createFile,
+        updateFile,
+        createQuiz,
+        renameContent,
         deleteContent,
+        addQuestion,
+        saveQuestion,
+        deleteQuestion,
       }}
     >
       {children}

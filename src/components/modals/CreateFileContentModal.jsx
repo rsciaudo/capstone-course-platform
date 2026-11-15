@@ -19,24 +19,31 @@ export default function CreateFileContentModal({ opened, onClose, courseId, modu
 
 function CreateFileContentForm({ onClose, courseId, moduleId }) {
   const navigate = useNavigate()
-  const { addContent } = useCourses()
+  const { createFile } = useCourses()
   const [name, setName] = useState('')
   const [file, setFile] = useState(null)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const fileError = file && !isImageOrPdf(file) ? 'Choose an image or PDF' : ''
 
-  function submit() {
+  async function submit() {
     if (!file || !isImageOrPdf(file)) {
       return
     }
 
-    const created = addContent(courseId, moduleId, {
-      type: 'file',
-      name: name.trim(),
-      fileUrl: URL.createObjectURL(file),
-      fileName: file.name,
-    })
-    onClose()
-    navigate(`/courses/${courseId}/modules/${moduleId}/content/${created.number}`)
+    setError('')
+    setSubmitting(true)
+    try {
+      const created = await createFile(courseId, moduleId, {
+        name: name.trim(),
+        file,
+      })
+      onClose()
+      navigate(`/courses/${courseId}/modules/${moduleId}/content/${created.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -54,8 +61,10 @@ function CreateFileContentForm({ onClose, courseId, moduleId }) {
         placeholder="image or pdf"
       />
       {fileError ? <Text c="red">{fileError}</Text> : null}
+      {error ? <Text c="red">{error}</Text> : null}
       <Button
         onClick={submit}
+        loading={submitting}
         disabled={name.trim() === '' || !file || fileError !== ''}
       >
         add file

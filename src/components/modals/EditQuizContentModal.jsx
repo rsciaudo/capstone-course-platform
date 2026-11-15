@@ -1,4 +1,4 @@
-import { Button, Modal, Stack, TextInput } from '@mantine/core'
+import { Button, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useCourses } from '../../courses/CoursesContext.jsx'
 
@@ -7,7 +7,7 @@ export default function EditQuizContentModal({
   onClose,
   courseId,
   moduleId,
-  contentNumber,
+  contentId,
   name,
 }) {
   return (
@@ -17,7 +17,7 @@ export default function EditQuizContentModal({
           onClose={onClose}
           courseId={courseId}
           moduleId={moduleId}
-          contentNumber={contentNumber}
+          contentId={contentId}
           name={name}
         />
       ) : null}
@@ -25,13 +25,22 @@ export default function EditQuizContentModal({
   )
 }
 
-function EditQuizContentForm({ onClose, courseId, moduleId, contentNumber, name }) {
-  const { updateContent } = useCourses()
+function EditQuizContentForm({ onClose, courseId, moduleId, contentId, name }) {
+  const { renameContent } = useCourses()
   const [nextName, setNextName] = useState(name)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit() {
-    updateContent(courseId, moduleId, contentNumber, { name: nextName.trim() })
-    onClose()
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      await renameContent(courseId, moduleId, contentId, nextName.trim())
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -41,7 +50,8 @@ function EditQuizContentForm({ onClose, courseId, moduleId, contentNumber, name 
         value={nextName}
         onChange={(event) => setNextName(event.currentTarget.value)}
       />
-      <Button onClick={submit} disabled={nextName.trim() === ''}>
+      {error ? <Text c="red">{error}</Text> : null}
+      <Button onClick={submit} loading={submitting} disabled={nextName.trim() === ''}>
         save
       </Button>
     </Stack>

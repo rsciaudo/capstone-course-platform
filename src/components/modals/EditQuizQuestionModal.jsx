@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack } from '@mantine/core'
+import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import { useState } from 'react'
 import QuizQuestionFields, {
   questionIsValid,
@@ -19,15 +19,25 @@ function EditQuizQuestionForm({ onClose, question, onSubmit }) {
   const [text, setText] = useState(question.text)
   const [choices, setChoices] = useState(
     question.choices.map((choice) => ({
-      key: choice.number,
+      key: choice.id,
+      id: choice.id,
       text: choice.text,
       correct: choice.correct,
     })),
   )
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit() {
-    onSubmit(toQuestionDraft(text, choices))
-    onClose()
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      await onSubmit(toQuestionDraft(text, choices))
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -38,11 +48,12 @@ function EditQuizQuestionForm({ onClose, question, onSubmit }) {
         onTextChange={setText}
         onChoicesChange={setChoices}
       />
+      {error ? <Text c="red">{error}</Text> : null}
       <Group>
         <Button variant="default" onClick={onClose}>
           cancel
         </Button>
-        <Button onClick={submit} disabled={!questionIsValid(text, choices)}>
+        <Button onClick={submit} loading={submitting} disabled={!questionIsValid(text, choices)}>
           save
         </Button>
       </Group>

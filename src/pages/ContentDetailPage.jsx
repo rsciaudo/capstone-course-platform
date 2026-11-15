@@ -24,14 +24,14 @@ export default function ContentDetailPage() {
   const course = courses.find((item) => item.id === Number(id))
   const module = course?.modules.find((item) => item.id === Number(moduleId))
   const content = module?.content ?? []
-  const item = content.find((entry) => entry.number === Number(contentNumber))
+  const item = content.find((entry) => String(entry.id) === contentNumber)
 
   if (!item) {
     return null
   }
 
-  function removeContent() {
-    deleteContent(id, moduleId, item.number)
+  async function removeContent() {
+    await deleteContent(id, moduleId, item.id)
     navigate(`/courses/${id}/modules/${moduleId}`)
   }
 
@@ -53,7 +53,7 @@ export default function ContentDetailPage() {
         fileUrl={item.fileUrl}
         courseId={id}
         moduleId={moduleId}
-        contentNumber={item.number}
+        contentId={item.id}
         questions={item.questions}
       />
       {item.type === 'file' ? (
@@ -62,7 +62,7 @@ export default function ContentDetailPage() {
           onClose={close}
           courseId={id}
           moduleId={moduleId}
-          contentNumber={item.number}
+          contentId={item.id}
           name={item.name ?? ''}
         />
       ) : null}
@@ -72,7 +72,7 @@ export default function ContentDetailPage() {
           onClose={close}
           courseId={id}
           moduleId={moduleId}
-          contentNumber={item.number}
+          contentId={item.id}
           name={item.name ?? ''}
         />
       ) : null}

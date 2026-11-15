@@ -1,4 +1,4 @@
-import { Button, Modal, Stack, TextInput } from '@mantine/core'
+import { Button, Modal, Stack, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCourses } from '../../courses/CoursesContext.jsx'
@@ -15,16 +15,22 @@ export default function CreateQuizContentModal({ opened, onClose, courseId, modu
 
 function CreateQuizContentForm({ onClose, courseId, moduleId }) {
   const navigate = useNavigate()
-  const { addContent } = useCourses()
+  const { createQuiz } = useCourses()
   const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit() {
-    const created = addContent(courseId, moduleId, {
-      type: 'quiz',
-      name: name.trim(),
-    })
-    onClose()
-    navigate(`/courses/${courseId}/modules/${moduleId}/content/${created.number}`)
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    try {
+      const created = await createQuiz(courseId, moduleId, { name: name.trim() })
+      onClose()
+      navigate(`/courses/${courseId}/modules/${moduleId}/content/${created.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -34,7 +40,8 @@ function CreateQuizContentForm({ onClose, courseId, moduleId }) {
         value={name}
         onChange={(event) => setName(event.currentTarget.value)}
       />
-      <Button onClick={submit} disabled={name.trim() === ''}>
+      {error ? <Text c="red">{error}</Text> : null}
+      <Button onClick={submit} loading={submitting} disabled={name.trim() === ''}>
         add quiz
       </Button>
     </Stack>
