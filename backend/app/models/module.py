@@ -13,7 +13,12 @@ class Module(Base):
     position: Mapped[int]
 
     course: Mapped["Course"] = relationship(back_populates="modules")
-    content_items: Mapped[list["ContentItem"]] = relationship(back_populates="module")
+    content_items: Mapped[list["ContentItem"]] = relationship(
+        back_populates="module",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="ContentItem.position",
+    )
 
     __table_args__ = (
         CheckConstraint("position > 0", name="modules_position_check"),

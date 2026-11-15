@@ -3,6 +3,18 @@ from app.schemas.user import LoginRequest, UserCreate, UserRead, UserUpdate
 from app.schemas.course import CourseCreate, CourseUpdate, CourseRead
 from app.schemas.module import ModuleCreate, ModuleUpdate, ModuleRead
 from app.schemas.enrollment import EnrollmentCreate, EnrollmentRead, EnrollmentUpdate
+from app.schemas.content import (
+    ChoiceCreate,
+    ChoiceRead,
+    ChoiceUpdate,
+    ContentUpdate,
+    QuestionCreate,
+    QuestionRead,
+    QuestionUpdate,
+    QuizCreate,
+    SlideCreate,
+    SlideUpdate,
+)
 from app.schemas.edit_grant import EditGrantCreate, EditGrantRead, EditGrantUpdate
 
 __all__ = [
@@ -22,6 +34,16 @@ __all__ = [
     "EnrollmentCreate",
     "EnrollmentRead",
     "EnrollmentUpdate",
+    "ChoiceCreate",
+    "ChoiceRead",
+    "ChoiceUpdate",
+    "ContentUpdate",
+    "QuestionCreate",
+    "QuestionRead",
+    "QuestionUpdate",
+    "QuizCreate",
+    "SlideCreate",
+    "SlideUpdate",
     "EditGrantCreate",
     "EditGrantRead",
     "EditGrantUpdate",
